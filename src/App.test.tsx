@@ -308,6 +308,93 @@ describe("model setup", () => {
   });
 });
 
+describe("switching tiers", () => {
+  it("offers the switch once a model is ready and loads the new tier", async () => {
+    const worker = await setup();
+    await loadDefaultModel(worker);
+
+    const select = page.getByRole("combobox", { name: "Model" });
+    await waitForDisabled(select, false);
+    await select.click();
+    await page.getByRole("option", { name: /Qwen3 0\.6B/ }).click();
+
+    // The resident tier stays on the line while the select already points away.
+    await waitForTextMatching(page.getByTestId("current-model"), /MiniCPM5 2B · 1\.56 GB · loaded/);
+    await waitForText(page.getByTestId("load"), "switch to Qwen3 0.6B");
+
+    await page.getByTestId("load").click();
+    expect(worker.requests.at(-1)).toEqual({
+      type: "load",
+      modelId: "qwen3-0.6b",
+      useLocal: false,
+    });
+    await waitForTextMatching(page.getByTestId("current-model"), /Qwen3 0\.6B · 639 MB · loading/);
+    await waitForDisabled(page.getByTestId("run"), true);
+
+    await emit(worker, {
+      type: "ready",
+      warmupMs: 42,
+      modelId: "qwen3-0.6b",
+      modelName: "Qwen3 0.6B",
+    });
+    await waitForTextMatching(page.getByTestId("current-model"), /Qwen3 0\.6B · 639 MB · loaded/);
+    await waitForText(page.getByTestId("load"), "model ready");
+    await waitForDisabled(page.getByTestId("load"), true);
+    await waitForDisabled(page.getByTestId("run"), false);
+  });
+
+  it("drops the previous readouts when the tier changes", async () => {
+    const worker = await setup();
+    await loadDefaultModel(worker);
+
+    await page.getByTestId("run").click();
+    await emit(worker, {
+      type: "direct",
+      totalMs: 900,
+      inputTokens: 120,
+      readouts: 1,
+      options: [
+        { label: "A", description: "Account access support", probability: 0.7, logit: -0.1 },
+        { label: "B", description: "Billing support", probability: 0.2, logit: -1.5 },
+        { label: "C", description: "Close as resolved", probability: 0.1, logit: -2.1 },
+      ],
+    });
+    await waitForTextMatching(page.getByTestId("direct-output"), /Account access support/);
+
+    // A tier cannot be swapped while a comparison is in flight.
+    await waitForDisabled(page.getByRole("combobox", { name: "Model" }), true);
+
+    await emit(worker, {
+      type: "complete",
+      directMs: 900,
+      generationMs: 5400,
+      inputTokens: 120,
+      ttftMs: 300,
+      generatedTokens: 30,
+      generatedText:
+        '{"A: Account access support": 0.7, "B: Billing support": 0.2, "C: Close as resolved": 0.1}',
+      valid: true,
+      choice: "A",
+      choiceDescription: "Account access support",
+      validationError: "",
+      strippedFence: false,
+    });
+    await waitForTextMatching(page.getByTestId("generation-verdict"), /valid JSON/);
+
+    await page.getByRole("combobox", { name: "Model" }).click();
+    await page.getByRole("option", { name: /Qwen3\.5 4B/ }).click();
+    await page.getByTestId("load").click();
+
+    await waitForTextMatching(
+      page.getByTestId("current-model"),
+      /Qwen3\.5 4B · 3\.01 GB · loading/,
+    );
+    await waitForCount(page.getByText("waiting for a run"), 2);
+    expect(page.getByTestId("direct-output").elements()).toHaveLength(0);
+    expect(page.getByTestId("generation-verdict").elements()).toHaveLength(0);
+  });
+});
+
 describe("decision editing", () => {
   it("keeps the option count between two and twenty", async () => {
     await setup();

@@ -41,6 +41,8 @@ export interface SetupPanelProps {
   canLoad: boolean;
   loading: boolean;
   modelReady: boolean;
+  /** The tier whose weights are resident, so the button can offer a switch. */
+  loadedModelId: ModelId | null;
   selectDisabled: boolean;
   download: DownloadSnapshot;
   loadMs: number | null;
@@ -117,6 +119,7 @@ export function SetupPanel({
   canLoad,
   loading,
   modelReady,
+  loadedModelId,
   selectDisabled,
   download,
   loadMs,
@@ -127,14 +130,21 @@ export function SetupPanel({
   const SupportIcon = SUPPORT_ICON[support.tone];
   const failed = webgpuOk && !modelReady && !loading && support.tone === "error";
 
-  const loadLabel = modelReady
+  // The status line reports what is resident, not what the select points at, so
+  // a pending switch stays visible next to a control that already moved on.
+  const shown = modelReady && loadedModelId ? MODELS[loadedModelId] : model;
+  const resident = modelReady && loadedModelId === selected;
+
+  const loadLabel = resident
     ? "model ready"
     : loading
       ? "loading…"
       : failed
         ? `retry ${model.name} load`
-        : `load ${model.name}`;
-  const LoadIcon = modelReady ? Check : loading ? LoaderCircle : failed ? RotateCcw : Download;
+        : modelReady
+          ? `switch to ${model.name}`
+          : `load ${model.name}`;
+  const LoadIcon = resident ? Check : loading ? LoaderCircle : failed ? RotateCcw : Download;
 
   const supportAlert = (
     <Alert tone={SUPPORT_TONE[support.tone]} data-testid="support">
@@ -161,8 +171,8 @@ export function SetupPanel({
         eyebrowAction={
           <>
             <ModelStatus
-              modelName={model.name}
-              modelSize={model.size}
+              modelName={shown.name}
+              modelSize={shown.size}
               ready={modelReady}
               loading={loading}
               failed={failed}
@@ -209,7 +219,12 @@ export function SetupPanel({
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={onLoad} disabled={!canLoad} className="h-9" data-testid="load">
+            <Button
+              onClick={onLoad}
+              disabled={!canLoad || resident}
+              className="h-9"
+              data-testid="load"
+            >
               <LoadIcon className={loading ? "animate-spin" : undefined} aria-hidden="true" />
               {loadLabel}
             </Button>

@@ -38,7 +38,8 @@ export interface InferenceState {
   download: DownloadSnapshot;
   loadMs: number | null;
   warmupMs: number | null;
-  readyModelName: string | null;
+  /** The tier whose weights are resident, or null while nothing is loaded. */
+  loadedModelId: ModelId | null;
   direct: DirectResult | null;
   stream: GenerationUpdate | null;
   result: ComparisonResult | null;
@@ -53,7 +54,7 @@ const initialState: InferenceState = {
   download: { percent: null, value: "—", detail: "starts only when you click load" },
   loadMs: null,
   warmupMs: null,
-  readyModelName: null,
+  loadedModelId: null,
   direct: null,
   stream: null,
   result: null,
@@ -81,7 +82,20 @@ function reducer(state: InferenceState, action: Action): InferenceState {
       return { ...state, support: { text: action.text, tone: action.tone } };
 
     case "start-load":
-      return { ...state, busy: "load", support: { text: "Loading the model…", tone: "info" } };
+      return {
+        ...state,
+        busy: "load",
+        // A switch starts by discarding the resident tier: its readouts would
+        // otherwise be attributed to the model that replaces it.
+        modelReady: false,
+        loadedModelId: null,
+        loadMs: null,
+        warmupMs: null,
+        direct: null,
+        stream: null,
+        result: null,
+        support: { text: "Loading the model…", tone: "info" },
+      };
 
     case "start-run":
       return {
@@ -121,7 +135,7 @@ function applyWorkerEvent(state: InferenceState, event: WorkerEvent): InferenceS
         modelReady: true,
         busy: null,
         warmupMs: event.warmupMs,
-        readyModelName: event.modelName,
+        loadedModelId: event.modelId,
         support: {
           text: `Ready. ${event.modelName} is loaded locally on WebGPU.`,
           tone: "ok",
@@ -169,11 +183,10 @@ export interface UseInferenceOptions {
 }
 
 export interface InferenceApi extends InferenceState {
-  /** A load may start once WebGPU is confirmed and no model is ready yet. */
+  /** A load or a switch may start once WebGPU is confirmed and nothing is busy. */
   canLoad: boolean;
   /** Both paths need a loaded model and no run in flight. */
   canRun: boolean;
-  isModelReady: boolean;
   loadModel: (modelId: ModelId, useLocal: boolean) => void;
   runComparison: (input: DecisionInput) => boolean;
   reportSupport: (text: string, tone: SupportTone) => void;
@@ -280,14 +293,13 @@ export function useInference(options: UseInferenceOptions = {}): InferenceApi {
     dispatch({ type: "support", text, tone });
   }, []);
 
-  const canLoad = state.webgpuOk && !state.modelReady && state.busy === null;
+  const canLoad = state.webgpuOk && state.busy === null;
   const canRun = state.modelReady && state.busy === null;
 
   return {
     ...state,
     canLoad,
     canRun,
-    isModelReady: state.modelReady,
     loadModel,
     runComparison,
     reportSupport,

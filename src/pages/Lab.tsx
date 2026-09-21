@@ -34,7 +34,8 @@ export function Lab() {
         canLoad={inference.canLoad}
         loading={inference.busy === "load"}
         modelReady={inference.modelReady}
-        selectDisabled={inference.busy !== null || inference.modelReady}
+        loadedModelId={inference.loadedModelId}
+        selectDisabled={inference.busy !== null}
         download={inference.download}
         loadMs={inference.loadMs}
         warmupMs={inference.warmupMs}
