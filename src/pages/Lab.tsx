@@ -1,7 +1,6 @@
 import { Link } from "react-router";
 
 import { MethodMap } from "@/components/app/MethodMap";
-import { ReadoutPanel } from "@/components/app/ReadoutPanel";
 import { ResultsSection } from "@/components/app/Results";
 import { SetupPanel } from "@/components/app/SetupPanel";
 import { VerdictBar } from "@/components/app/VerdictBar";
@@ -27,6 +26,8 @@ export function Lab() {
         selected={lab.modelId}
         onSelect={lab.selectModel}
         onLoad={() => inference.loadModel(lab.modelId, lab.useLocal)}
+        readout={lab.readout}
+        onReadoutChange={lab.setReadout}
         headingLevel={1}
         open={lab.setupOpen}
         onToggleOpen={lab.toggleSetup}
@@ -36,17 +37,11 @@ export function Lab() {
         modelReady={inference.modelReady}
         loadedModelId={inference.loadedModelId}
         cachedTiers={inference.cachedTiers}
-        selectDisabled={inference.busy !== null}
+        busy={inference.busy !== null}
         download={inference.download}
         loadMs={inference.loadMs}
         warmupMs={inference.warmupMs}
         support={inference.support}
-      />
-
-      <ReadoutPanel
-        readout={lab.readout}
-        onReadoutChange={lab.setReadout}
-        disabled={inference.busy !== null}
       />
 
       <Workbench

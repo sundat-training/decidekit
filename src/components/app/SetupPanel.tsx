@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Segmented } from "@/components/ui/segmented";
 import {
   Select,
   SelectContent,
@@ -27,12 +28,21 @@ import {
 } from "@/components/ui/select";
 import type { DownloadSnapshot } from "@/lib/download";
 import { MODELS, MODEL_IDS, type ModelId, type NoticeTone } from "@/lib/models";
+import { READOUT_HINT, READOUT_LABEL, READOUT_MODES, type ReadoutMode } from "@/lib/readout";
 import { cn } from "@/lib/utils";
+
+const READOUT_OPTIONS = READOUT_MODES.map((value) => ({
+  value,
+  label: READOUT_LABEL[value],
+}));
 
 export interface SetupPanelProps {
   selected: ModelId;
   onSelect: (id: ModelId) => void;
   onLoad: () => void;
+  /** Which readouts the next run computes. */
+  readout: ReadoutMode;
+  onReadoutChange: (mode: ReadoutMode) => void;
   /** `1` when this section doubles as the page title. */
   headingLevel?: 1 | 2;
   /** Whether the setup details are expanded. The model line stays visible either way. */
@@ -46,7 +56,8 @@ export interface SetupPanelProps {
   loadedModelId: ModelId | null;
   /** Tiers this browser has loaded before; marked as cached in the list. */
   cachedTiers: ModelId[];
-  selectDisabled: boolean;
+  /** Locks the panel controls while a load or a run is in flight. */
+  busy: boolean;
   download: DownloadSnapshot;
   loadMs: number | null;
   warmupMs: number | null;
@@ -115,6 +126,8 @@ export function SetupPanel({
   selected,
   onSelect,
   onLoad,
+  readout,
+  onReadoutChange,
   headingLevel,
   open,
   onToggleOpen,
@@ -124,7 +137,7 @@ export function SetupPanel({
   modelReady,
   loadedModelId,
   cachedTiers,
-  selectDisabled,
+  busy,
   download,
   loadMs,
   warmupMs,
@@ -209,7 +222,7 @@ export function SetupPanel({
               <Select
                 value={selected}
                 onValueChange={(value) => onSelect(value as ModelId)}
-                disabled={selectDisabled}
+                disabled={busy}
               >
                 <SelectTrigger id="model-select" className="w-full sm:w-80" aria-label="Model">
                   <SelectValue className="truncate" />
@@ -260,6 +273,29 @@ export function SetupPanel({
             this browser before, so switching to it should not download again. Inputs never leave
             this page.
           </p>
+
+          <div className="mt-1 flex flex-col gap-4 border-t border-border pt-6">
+            <SectionHeading
+              index="02"
+              label="readouts"
+              id="readout-title"
+              title="What should run"
+              description="Both paths answer the same prompt. Selecting one skips the work of the other; the model, the question and the options stay identical."
+            />
+
+            <Segmented
+              name="readout"
+              legend="Results to compute and display"
+              value={readout}
+              options={READOUT_OPTIONS}
+              onChange={onReadoutChange}
+              disabled={busy}
+            />
+
+            <p className="max-w-prose text-xs leading-relaxed text-muted-foreground">
+              {READOUT_HINT[readout]}
+            </p>
+          </div>
         </CardContent>
       ) : support.tone === "error" ? (
         // A failure stays readable while the rest of the setup is hidden.
