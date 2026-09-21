@@ -51,11 +51,7 @@ export const GENERATION_MAX_TOKENS = 512;
  * Options are letters, so one constrained readout scores every choice instead
  * of decoding one token per option.
  */
-export {
-  MAX_OPTIONS,
-  MIN_OPTIONS,
-  optionLabels,
-} from "./labels";
+export { MAX_OPTIONS, MIN_OPTIONS, optionLabels } from "./labels";
 
 export function optionBlock(
   options: string[],
@@ -88,8 +84,7 @@ export function directInstruction(labels: string[]): string {
 
 export function buildMessages(input: DecisionInput, mode: ReadoutMode): ChatMessage[] {
   const labels = optionLabels(input.options.length);
-  const outputInstruction =
-    mode === "direct" ? directInstruction(labels) : generationInstruction();
+  const outputInstruction = mode === "direct" ? directInstruction(labels) : generationInstruction();
   return [
     { role: "system", content: SYSTEM_PROMPT },
     {
@@ -116,10 +111,7 @@ export function softmax(values: number[]): number[] {
  * token. Models differ in whether they expose the letter as text or as a single
  * byte, so both encodings are accepted.
  */
-export function readOptionLogprobs(
-  response: ChatCompletionResponse,
-  labels: string[],
-): number[] {
+export function readOptionLogprobs(response: ChatCompletionResponse, labels: string[]): number[] {
   const entries = response.choices?.[0]?.logprobs?.content?.[0]?.top_logprobs ?? [];
   return labels.map((label) => {
     const ascii = label.charCodeAt(0);
@@ -131,7 +123,11 @@ export function readOptionLogprobs(
 }
 
 export function assertValidOptionLogprobs(values: number[], labels: string[]): void {
-  if (!values || values.length !== labels.length || values.some((value) => !Number.isFinite(value))) {
+  if (
+    !values ||
+    values.length !== labels.length ||
+    values.some((value) => !Number.isFinite(value))
+  ) {
     throw new Error(`The model did not return valid option logits for ${labels.join(", ")}.`);
   }
 }
@@ -158,7 +154,12 @@ export function validateGeneration(text: string, input: DecisionInput): Generati
     }
     const probabilities = keys.map((key) => {
       const probability = record[key];
-      if (typeof probability !== "number" || !Number.isFinite(probability) || probability < 0 || probability > 1) {
+      if (
+        typeof probability !== "number" ||
+        !Number.isFinite(probability) ||
+        probability < 0 ||
+        probability > 1
+      ) {
         throw new Error("probabilities must be numbers from 0 to 1");
       }
       return probability;

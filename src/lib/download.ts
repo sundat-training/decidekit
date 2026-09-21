@@ -42,7 +42,11 @@ export class DownloadTracker {
   update(event: LoaderProgressEvent): DownloadSnapshot {
     if (!event.file) return this.snapshot;
 
-    if (event.status === "progress" && Number.isFinite(event.loaded) && Number.isFinite(event.total)) {
+    if (
+      event.status === "progress" &&
+      Number.isFinite(event.loaded) &&
+      Number.isFinite(event.total)
+    ) {
       this.files.set(event.file, { loaded: event.loaded ?? 0, total: event.total ?? 0 });
     } else if (event.status === "done" && this.files.has(event.file)) {
       const item = this.files.get(event.file)!;

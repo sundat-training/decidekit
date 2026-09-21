@@ -12,7 +12,13 @@ import type {
 } from "@/lib/inference/protocol";
 import { cn } from "@/lib/utils";
 
-function Placeholder({ children, tone = "muted" }: { children: React.ReactNode; tone?: "muted" | "active" }) {
+function Placeholder({
+  children,
+  tone = "muted",
+}: {
+  children: React.ReactNode;
+  tone?: "muted" | "active";
+}) {
   return (
     <div
       className={cn(
@@ -95,10 +101,7 @@ export function DirectLane({ direct, running }: DirectLaneProps) {
         <dl className="grid grid-cols-3 divide-x divide-border border-t border-border">
           <Metric term="total" value={direct ? formatSeconds(direct.totalMs) : "—"} />
           <Metric term="input" value={direct ? `${direct.inputTokens} tok` : "—"} />
-          <Metric
-            term="output"
-            value={direct ? pluralize(direct.readouts, "readout") : "—"}
-          />
+          <Metric term="output" value={direct ? pluralize(direct.readouts, "readout") : "—"} />
         </dl>
       </CardContent>
     </Card>
@@ -174,19 +177,15 @@ export function GenerationLane({ stream, result, running }: GenerationLaneProps)
         <dl className="grid grid-cols-2 divide-x divide-border border-t border-border sm:grid-cols-4">
           <Metric
             term="first token"
-            value={result ? (result.ttftMs === null ? "no token" : formatSeconds(result.ttftMs)) : "—"}
+            value={
+              result ? (result.ttftMs === null ? "no token" : formatSeconds(result.ttftMs)) : "—"
+            }
           />
           <Metric term="total" value={result ? formatSeconds(result.generationMs) : "—"} />
           <Metric term="input" value={result ? `${result.inputTokens} tok` : "—"} />
           <Metric
             term="output"
-            value={
-              result
-                ? `${result.generatedTokens} tok`
-                : stream
-                  ? `${stream.tokens} tok`
-                  : "—"
-            }
+            value={result ? `${result.generatedTokens} tok` : stream ? `${stream.tokens} tok` : "—"}
           />
         </dl>
       </CardContent>

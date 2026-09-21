@@ -1,4 +1,12 @@
-import { Check, CircleAlert, CircleCheck, Download, Info, LoaderCircle, RotateCcw } from "lucide-react";
+import {
+  Check,
+  CircleAlert,
+  CircleCheck,
+  Download,
+  Info,
+  LoaderCircle,
+  RotateCcw,
+} from "lucide-react";
 
 import { ModelQualityTable } from "@/components/app/ModelQualityTable";
 import { PhaseMetrics } from "@/components/app/PhaseMetrics";

@@ -75,7 +75,12 @@ describe("direct readout", () => {
       ]),
     );
 
-    const result = await runDirectReadout(client, THREE, MODELS["minicpm5-2b"], sequenceClock(0, 120));
+    const result = await runDirectReadout(
+      client,
+      THREE,
+      MODELS["minicpm5-2b"],
+      sequenceClock(0, 120),
+    );
 
     expect(result.totalMs).toBe(120);
     expect(result.inputTokens).toBe(128);
@@ -109,7 +114,9 @@ describe("direct readout", () => {
     expect(request.stream).toBeUndefined();
     expect(request.chat_template_kwargs).toEqual({ enable_thinking: false });
     expect(request.grammar).toBe('root ::= "A" | "B" | "C"');
-    expect(request.messages[1].content).toContain("Reply with exactly one option letter from: A, B, C.");
+    expect(request.messages[1].content).toContain(
+      "Reply with exactly one option letter from: A, B, C.",
+    );
   });
 
   it("biases the token ids that follow from the selected model", async () => {

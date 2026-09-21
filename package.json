@@ -1,9 +1,9 @@
 {
   "name": "decidekit",
-  "private": true,
   "version": "0.1.0",
-  "type": "module",
+  "private": true,
   "description": "Browser-only comparison of direct option logits against autoregressive JSON generation.",
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -11,7 +11,11 @@
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:browser": "vitest run --browser.headless"
+    "test:browser": "vitest run --browser.headless",
+    "lint": "oxlint --fix --report-unused-disable-directives",
+    "lint:typed": "oxlint --type-aware --report-unused-disable-directives",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check"
   },
   "dependencies": {
     "@fontsource-variable/ibm-plex-sans": "^5.3.0",
@@ -40,6 +44,9 @@
     "@vitejs/plugin-react": "^6.1.1",
     "@vitest/browser": "^5.0.1",
     "@vitest/browser-playwright": "^5.0.1",
+    "oxfmt": "^0.69.0",
+    "oxlint": "^1.84.0",
+    "oxlint-tsgolint": "^7.0.2002",
     "playwright": "^1.63.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.0",

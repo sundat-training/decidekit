@@ -42,6 +42,9 @@ export function OptionEditor({ options, onChange }: OptionEditorProps) {
 
       <div className="flex flex-col gap-2">
         {options.map((option, index) => (
+          // Options are a positional list: the letter is derived from the index,
+          // so the index is the stable identity of a row.
+          // oxlint-disable-next-line react/no-array-index-key
           <div key={index} className="flex items-center gap-3" data-testid="option-row">
             <span
               className="w-4 shrink-0 font-mono text-xs text-muted-foreground"
@@ -67,7 +70,10 @@ export function OptionEditor({ options, onChange }: OptionEditorProps) {
           <Minus aria-hidden="true" />
           remove
         </Button>
-        <span className="metric-value font-mono text-xs text-muted-foreground" data-testid="option-count">
+        <span
+          className="metric-value font-mono text-xs text-muted-foreground"
+          data-testid="option-count"
+        >
           {options.length} / {MAX_OPTIONS}
         </span>
         <Button variant="outline" size="sm" onClick={addOption} disabled={atMax}>

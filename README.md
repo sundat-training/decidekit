@@ -38,14 +38,42 @@ of Hugging Face. Place that file yourself; `public/assets/` is gitignored.
 
 ## Scripts
 
-| Command | Purpose |
-| --- | --- |
-| `npm run dev` | Vite dev server with the cross-origin isolation headers |
-| `npm run build` | Typecheck via project references, then build to `dist/` |
-| `npm run preview` | Serve the built `dist/` with the same headers |
-| `npm test` | Vitest in browser mode (headless Chromium through Playwright) |
-| `npm run test:watch` | The same suite in watch mode |
-| `npm run typecheck` | `tsc -b` across the app, worker and config projects |
+| Command              | Purpose                                                       |
+| -------------------- | ------------------------------------------------------------- |
+| `npm run dev`        | Vite dev server with the cross-origin isolation headers       |
+| `npm run build`      | Typecheck via project references, then build to `dist/`       |
+| `npm run preview`    | Serve the built `dist/` with the same headers                 |
+| `npm test`           | Vitest in browser mode (headless Chromium through Playwright) |
+| `npm run test:watch` | The same suite in watch mode                                  |
+| `npm run typecheck`  | `tsc -b` across the app, worker and config projects           |
+| `npm run lint`       | oxlint with autofix and unused-directive reporting            |
+| `npm run lint:typed` | oxlint with the type-aware engine (tsgolint)                  |
+| `npm run fmt`        | oxfmt, writing in place                                       |
+| `npm run fmt:check`  | oxfmt in check mode                                           |
+
+## Linting and formatting
+
+`oxlint` and `oxfmt` need no plugin install step. Configuration lives in
+`.oxlintrc.json` and `.oxfmtrc.json`, and `fmt`/`fmt:check` also cover Markdown
+and JSON.
+
+Two rules are deliberately off, both explained in the config:
+
+- `unicorn/require-post-message-target-origin` only knows the `Window`
+  signature, so it fires on every `Worker.postMessage`, which takes no target
+  origin.
+- `typescript/no-unsafe-type-assertion` is stricter than the boundaries in this
+  codebase need: a dynamically imported untyped vendored module, DOM element
+  narrowing in tests, and reading a record after a structural check.
+  `typescript/no-unnecessary-type-assertion` stays on and still catches casts
+  that do nothing.
+
+`npm run lint` skips the rules that need type information; `npm run lint:typed`
+adds them:
+
+```bash
+npm run lint:typed
+```
 
 ## Architecture
 

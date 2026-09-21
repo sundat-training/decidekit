@@ -180,9 +180,7 @@ export interface InferenceApi extends InferenceState {
 }
 
 const defaultWorkerFactory: WorkerFactory = () =>
-  new Worker(new URL("../worker/inference.worker.ts", import.meta.url), {
-    type: "module",
-  }) as unknown as WorkerLike;
+  new Worker(new URL("../worker/inference.worker.ts", import.meta.url), { type: "module" });
 
 export function useInference(options: UseInferenceOptions = {}): InferenceApi {
   const { createWorker = defaultWorkerFactory, probe = probeWebGPU } = options;
@@ -195,11 +193,12 @@ export function useInference(options: UseInferenceOptions = {}): InferenceApi {
 
   useEffect(() => {
     let cancelled = false;
-    probeRef.current()
-      .then((status) => {
+
+    const check = async () => {
+      try {
+        const status = await probeRef.current();
         if (!cancelled) dispatch({ type: "webgpu-checked", status });
-      })
-      .catch((error: unknown) => {
+      } catch (error) {
         if (cancelled) return;
         dispatch({
           type: "webgpu-checked",
@@ -208,7 +207,10 @@ export function useInference(options: UseInferenceOptions = {}): InferenceApi {
             message: `WebGPU check failed: ${error instanceof Error ? error.message : String(error)}`,
           },
         });
-      });
+      }
+    };
+
+    void check();
     return () => {
       cancelled = true;
     };

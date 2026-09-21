@@ -1,0 +1,55 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["unicorn", "typescript", "oxc", "react", "jsx-a11y", "vitest", "import", "promise"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "warn"
+  },
+  "env": {
+    "browser": true,
+    "builtin": true
+  },
+  "ignorePatterns": ["dist/**", "public/vendor/**", "coverage/**", ".vitest/**"],
+  "rules": {
+    "react/react-in-jsx-scope": "off",
+    "import/no-unassigned-import": ["error", { "allow": ["**/*.css"] }],
+
+    // Worker.postMessage takes no targetOrigin, but the rule only knows the
+    // Window signature and fires on every worker message.
+    "unicorn/require-post-message-target-origin": "off",
+
+    // Boundary casts are deliberate here: a dynamically imported, untyped
+    // vendored module, DOM element narrowing in tests, and reading a record
+    // after a structural check. Prefer no-unnecessary-type-assertion, which
+    // still catches casts that do nothing.
+    "typescript/no-unsafe-type-assertion": "off",
+
+    // Type-aware rules: only evaluated by `npm run lint:typed`, which passes
+    // --type-aware. `npm run lint` ignores them.
+    "typescript/await-thenable": "error",
+    "typescript/no-array-delete": "error",
+    "typescript/no-base-to-string": "error",
+    "typescript/no-duplicate-type-constituents": "error",
+    "typescript/no-floating-promises": "error",
+    "typescript/no-for-in-array": "error",
+    "typescript/no-implied-eval": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/no-unnecessary-type-assertion": "error",
+
+    "vitest/expect-expect": [
+      "error",
+      {
+        "assertFunctionNames": [
+          "expect",
+          "waitForText",
+          "waitForTextMatching",
+          "waitForDisabled",
+          "waitForCount",
+          "waitForFieldValue",
+          "waitForFieldValueMatching"
+        ]
+      }
+    ]
+  }
+}

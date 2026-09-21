@@ -27,7 +27,10 @@ export async function probeWebGPU(): Promise<WebGPUStatus> {
   }
   const adapter = await api.requestAdapter();
   if (!adapter) {
-    return { ok: false, message: "WebGPU exists, but no GPU adapter is available in this browser." };
+    return {
+      ok: false,
+      message: "WebGPU exists, but no GPU adapter is available in this browser.",
+    };
   }
   return { ok: true, message: "WebGPU is ready. The model does not download until you load it." };
 }

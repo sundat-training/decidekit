@@ -38,8 +38,10 @@ interface WllamaModule {
 const base = import.meta.env.BASE_URL;
 
 export const WLLAMA_INDEX_URL = new URL(`${base}vendor/wllama/index.js`, self.location.origin).href;
-export const WLLAMA_WASM_URL = new URL(`${base}vendor/wllama/wasm/wllama.wasm`, self.location.origin)
-  .href;
+export const WLLAMA_WASM_URL = new URL(
+  `${base}vendor/wllama/wasm/wllama.wasm`,
+  self.location.origin,
+).href;
 
 export async function importWllama(): Promise<WllamaModule> {
   return (await import(/* @vite-ignore */ WLLAMA_INDEX_URL)) as WllamaModule;

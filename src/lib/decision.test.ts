@@ -60,7 +60,9 @@ describe("prompt construction", () => {
 
   it("asks the generation path for the same distribution as JSON", () => {
     const content = userMessage("generation");
-    expect(content).toContain("Return only one JSON object mapping each option to its probability.");
+    expect(content).toContain(
+      "Return only one JSON object mapping each option to its probability.",
+    );
     expect(content).toContain('"A. Route north"');
     expect(content).toContain("Route south");
     expect(content).toContain("probabilities must sum to 1");
@@ -69,7 +71,9 @@ describe("prompt construction", () => {
 
   it("keeps the system instruction identical for both paths", () => {
     expect(buildMessages(INPUT, "direct")[0]).toEqual(buildMessages(INPUT, "generation")[0]);
-    expect(buildMessages(INPUT, "direct")[0].content).toContain("Follow the output format exactly.");
+    expect(buildMessages(INPUT, "direct")[0].content).toContain(
+      "Follow the output format exactly.",
+    );
   });
 
   it("restricts decoding to the supplied labels", () => {
@@ -158,7 +162,10 @@ describe("option logits", () => {
 
 describe("generation validation", () => {
   it("accepts a well formed distribution and reports the top choice", () => {
-    const verdict = validateGeneration('{"A: Account access support": 0.62, "B: Billing support": 0.38}', INPUT);
+    const verdict = validateGeneration(
+      '{"A: Account access support": 0.62, "B: Billing support": 0.38}',
+      INPUT,
+    );
     expect(verdict).toEqual({
       valid: true,
       choice: "A",
@@ -177,7 +184,10 @@ describe("generation validation", () => {
   });
 
   it("rejects a distribution that does not sum to one", () => {
-    const verdict = validateGeneration('{"A: Account access support": 0.9, "B: Billing support": 0.6}', INPUT);
+    const verdict = validateGeneration(
+      '{"A: Account access support": 0.9, "B: Billing support": 0.6}',
+      INPUT,
+    );
     expect(verdict.valid).toBe(false);
     expect(verdict.validationError).toBe("probabilities must sum to 1");
   });
@@ -193,12 +203,17 @@ describe("generation validation", () => {
   });
 
   it("rejects out-of-range values", () => {
-    const verdict = validateGeneration('{"A: Account access support": 1.4, "B: Billing support": -0.4}', INPUT);
+    const verdict = validateGeneration(
+      '{"A: Account access support": 1.4, "B: Billing support": -0.4}',
+      INPUT,
+    );
     expect(verdict.validationError).toBe("probabilities must be numbers from 0 to 1");
   });
 
   it("rejects anything that is not a JSON object", () => {
-    expect(validateGeneration("[0.5, 0.5]", INPUT).validationError).toBe("expected one JSON object");
+    expect(validateGeneration("[0.5, 0.5]", INPUT).validationError).toBe(
+      "expected one JSON object",
+    );
     expect(validateGeneration("not json at all", INPUT).valid).toBe(false);
     expect(validateGeneration("not json at all", INPUT).choice).toBeNull();
   });

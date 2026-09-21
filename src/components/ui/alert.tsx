@@ -18,30 +18,27 @@ const alertVariants = cva(
   },
 );
 
+/**
+ * `<output>` carries the implicit `status` role, so assistive technology
+ * announces these messages politely without an explicit `role` attribute.
+ */
 function Alert({
   className,
   tone,
   ...props
-}: React.ComponentProps<"div"> & VariantProps<typeof alertVariants>) {
-  return (
-    <div
-      data-slot="alert"
-      role="status"
-      className={cn(alertVariants({ tone }), className)}
-      {...props}
-    />
-  );
+}: React.ComponentProps<"output"> & VariantProps<typeof alertVariants>) {
+  return <output data-slot="alert" className={cn(alertVariants({ tone }), className)} {...props} />;
 }
 
-function AlertTitle({ className, ...props }: React.ComponentProps<"p">) {
-  return <p data-slot="alert-title" className={cn("font-medium", className)} {...props} />;
+function AlertTitle({ className, ...props }: React.ComponentProps<"span">) {
+  return <span data-slot="alert-title" className={cn("block font-medium", className)} {...props} />;
 }
 
-function AlertDescription({ className, ...props }: React.ComponentProps<"p">) {
+function AlertDescription({ className, ...props }: React.ComponentProps<"span">) {
   return (
-    <p
+    <span
       data-slot="alert-description"
-      className={cn("text-sm leading-relaxed text-muted-foreground", className)}
+      className={cn("block text-sm leading-relaxed text-muted-foreground", className)}
       {...props}
     />
   );

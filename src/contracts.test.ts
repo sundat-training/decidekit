@@ -9,7 +9,7 @@ const modules = import.meta.glob("./**/*.{ts,tsx,css}", {
   query: "?raw",
   import: "default",
   eager: true,
-}) as Record<string, string>;
+});
 
 const productionSources = Object.entries(modules)
   .filter(([path]) => !path.includes(".test."))

@@ -18,8 +18,8 @@ import { createWllama, importWllama, WLLAMA_WASM_URL, type WllamaInstance } from
 
 // Same policy as the document: never send the hosting URL to Hugging Face.
 const browserFetch = self.fetch.bind(self);
-self.fetch = ((input: RequestInfo | URL, init?: RequestInit) =>
-  browserFetch(input, { ...init, referrerPolicy: "no-referrer" })) as typeof self.fetch;
+self.fetch = (input: RequestInfo | URL, init?: RequestInit) =>
+  browserFetch(input, { ...init, referrerPolicy: "no-referrer" });
 
 function send(event: WorkerEvent): void {
   self.postMessage(event);
@@ -89,7 +89,11 @@ async function compare(data: CompareInput): Promise<void> {
   if (!engine) throw new Error("Load the model before running a comparison.");
   const model = modelId ? getModel(modelId) : undefined;
   if (!model) throw new Error("Load the model before running a comparison.");
-  if (!Array.isArray(data.options) || data.options.length < MIN_OPTIONS || data.options.length > MAX_OPTIONS) {
+  if (
+    !Array.isArray(data.options) ||
+    data.options.length < MIN_OPTIONS ||
+    data.options.length > MAX_OPTIONS
+  ) {
     throw new Error(`This lab requires ${MIN_OPTIONS} to ${MAX_OPTIONS} options.`);
   }
 
@@ -104,8 +108,7 @@ async function compare(data: CompareInput): Promise<void> {
   send({ type: "complete", ...generation, directMs: direct.totalMs });
 }
 
-self.addEventListener("message", async (event: MessageEvent<WorkerRequest>) => {
-  const request = event.data;
+async function handleRequest(request: WorkerRequest): Promise<void> {
   try {
     if (request.type === "load") await load(request.modelId, request.useLocal);
     if (request.type === "compare") await compare(request.data);
@@ -123,6 +126,10 @@ self.addEventListener("message", async (event: MessageEvent<WorkerRequest>) => {
     console.error(error);
     send({ type: "error", message: error instanceof Error ? error.message : String(error) });
   }
+}
+
+self.addEventListener("message", (event: MessageEvent<WorkerRequest>) => {
+  void handleRequest(event.data);
 });
 
 export { WLLAMA_WASM_URL };

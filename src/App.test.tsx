@@ -43,7 +43,7 @@ class FakeWorker {
   }
 
   asWorkerLike(): WorkerLike {
-    return this as unknown as WorkerLike;
+    return this;
   }
 }
 
@@ -66,11 +66,15 @@ async function textOf(locator: Locator): Promise<string> {
  * Reads and asserts in one retrying step: React renders in its own task, so an
  * immediate read would still see the previous text.
  */
-async function waitForText(locator: Locator, matcher: string | RegExp): Promise<void> {
+async function waitForText(locator: Locator, expected: string): Promise<void> {
   await vi.waitFor(async () => {
-    const text = await textOf(locator);
-    if (typeof matcher === "string") expect(text).toBe(matcher);
-    else expect(text).toMatch(matcher);
+    expect(await textOf(locator)).toBe(expected);
+  });
+}
+
+async function waitForTextMatching(locator: Locator, pattern: RegExp): Promise<void> {
+  await vi.waitFor(async () => {
+    expect(await textOf(locator)).toMatch(pattern);
   });
 }
 
@@ -87,14 +91,17 @@ async function waitForCount(locator: Locator, count: number): Promise<void> {
   });
 }
 
-async function waitForFieldValue(
-  locator: Locator,
-  matcher: string | RegExp,
-): Promise<void> {
+async function waitForFieldValue(locator: Locator, expected: string): Promise<void> {
   await vi.waitFor(async () => {
     const element = (await locator.findElement()) as HTMLInputElement | HTMLTextAreaElement;
-    if (typeof matcher === "string") expect(element.value).toBe(matcher);
-    else expect(element.value).toMatch(matcher);
+    expect(element.value).toBe(expected);
+  });
+}
+
+async function waitForFieldValueMatching(locator: Locator, pattern: RegExp): Promise<void> {
+  await vi.waitFor(async () => {
+    const element = (await locator.findElement()) as HTMLInputElement | HTMLTextAreaElement;
+    expect(element.value).toMatch(pattern);
   });
 }
 
@@ -111,45 +118,50 @@ async function emitWorkerError(worker: FakeWorker, message: string): Promise<voi
   worker.emitWorkerError(message);
 }
 
-function setup(probe: WebGPUProbe = READY_PROBE) {
+async function setup(probe: WebGPUProbe = READY_PROBE) {
   const worker = new FakeWorker();
-  render(<App createWorker={() => worker.asWorkerLike()} probe={probe} />);
+  await render(<App createWorker={() => worker.asWorkerLike()} probe={probe} />);
   return worker;
 }
 
 /** Loads the default tier and waits until both paths can run. */
 async function loadDefaultModel(worker: FakeWorker): Promise<void> {
   await page.getByTestId("load").click();
-  await emit(worker, { type: "ready", warmupMs: 88, modelId: "minicpm5-2b", modelName: "MiniCPM5 2B" });
+  await emit(worker, {
+    type: "ready",
+    warmupMs: 88,
+    modelId: "minicpm5-2b",
+    modelName: "MiniCPM5 2B",
+  });
   await waitForDisabled(page.getByTestId("run"), false);
 }
 
 describe("compatibility check", () => {
   it("reports a usable WebGPU before anything is downloaded", async () => {
-    setup();
+    await setup();
 
-    await waitForText(page.getByTestId("support-text"), /WebGPU is ready/);
+    await waitForTextMatching(page.getByTestId("support-text"), /WebGPU is ready/);
     await waitForDisabled(page.getByTestId("load"), false);
   });
 
   it("blocks loading when WebGPU is missing", async () => {
-    setup(UNSUPPORTED_PROBE);
+    await setup(UNSUPPORTED_PROBE);
 
-    await waitForText(page.getByTestId("support-text"), /WebGPU is unavailable/);
+    await waitForTextMatching(page.getByTestId("support-text"), /WebGPU is unavailable/);
     await waitForDisabled(page.getByTestId("load"), true);
   });
 
   it("keeps both result lanes empty until a run happens", async () => {
-    setup();
+    await setup();
 
     await waitForDisabled(page.getByTestId("run"), true);
-    expect(await page.getByText("waiting for a run").elements()).toHaveLength(2);
+    expect(page.getByText("waiting for a run").elements()).toHaveLength(2);
   });
 });
 
 describe("model setup", () => {
   it("loads the default tier and reports each setup phase", async () => {
-    const worker = setup();
+    const worker = await setup();
 
     await page.getByTestId("load").click();
     expect(worker.requests).toEqual([{ type: "load", modelId: "minicpm5-2b", useLocal: false }]);
@@ -169,15 +181,20 @@ describe("model setup", () => {
     await emit(worker, { type: "loaded", loadMs: 1234 });
     await waitForText(page.getByTestId("load-value"), "1.234 s");
 
-    await emit(worker, { type: "ready", warmupMs: 88, modelId: "minicpm5-2b", modelName: "MiniCPM5 2B" });
+    await emit(worker, {
+      type: "ready",
+      warmupMs: 88,
+      modelId: "minicpm5-2b",
+      modelName: "MiniCPM5 2B",
+    });
     await waitForText(page.getByTestId("warmup-value"), "0.088 s");
-    await waitForText(page.getByTestId("support-text"), /MiniCPM5 2B is loaded locally/);
+    await waitForTextMatching(page.getByTestId("support-text"), /MiniCPM5 2B is loaded locally/);
     await waitForDisabled(page.getByTestId("run"), false);
     await waitForDisabled(page.getByTestId("load"), true);
   });
 
   it("loads whichever tier the visitor selected", async () => {
-    const worker = setup();
+    const worker = await setup();
 
     await page.getByRole("combobox", { name: "Model" }).click();
     await page.getByRole("option", { name: /Qwen3 0.6B/ }).click();
@@ -187,7 +204,7 @@ describe("model setup", () => {
   });
 
   it("surfaces a worker failure and allows a retry", async () => {
-    const worker = setup();
+    const worker = await setup();
 
     await page.getByTestId("load").click();
     await emit(worker, { type: "error", message: "No GPU adapter." });
@@ -196,13 +213,13 @@ describe("model setup", () => {
     await waitForDisabled(page.getByTestId("load"), false);
 
     await emitWorkerError(worker, "Worker crashed");
-    await waitForText(page.getByTestId("support-text"), /Worker failed: Worker crashed/);
+    await waitForTextMatching(page.getByTestId("support-text"), /Worker failed: Worker crashed/);
   });
 });
 
 describe("decision editing", () => {
   it("keeps the option count between two and twenty", async () => {
-    setup();
+    await setup();
 
     const remove = page.getByRole("button", { name: /remove/i });
     const add = page.getByRole("button", { name: /add/i });
@@ -212,6 +229,9 @@ describe("decision editing", () => {
     await waitForText(page.getByTestId("option-count"), "2 / 20");
     await waitForDisabled(remove, true);
 
+    // Clicks must land in order: each one appends the next row, so they cannot
+    // be fired concurrently.
+    // oxlint-disable-next-line eslint/no-await-in-loop
     for (let index = 0; index < 18; index += 1) await add.click();
     await waitForText(page.getByTestId("option-count"), "20 / 20");
     await waitForCount(page.getByTestId("option-row"), 20);
@@ -219,17 +239,20 @@ describe("decision editing", () => {
   });
 
   it("prefills an example decision", async () => {
-    setup();
+    await setup();
 
     await page.getByTestId("preset-email").click();
 
-    await waitForFieldValue(page.getByLabelText("State"), /payroll/);
-    await waitForFieldValue(page.getByLabelText("Question"), "How should this email be classified?");
+    await waitForFieldValueMatching(page.getByLabelText("State"), /payroll/);
+    await waitForFieldValue(
+      page.getByLabelText("Question"),
+      "How should this email be classified?",
+    );
     await waitForFieldValue(page.getByLabelText("Option A"), "Legitimate");
   });
 
   it("refuses a decision with an empty option and never calls the worker", async () => {
-    const worker = setup();
+    const worker = await setup();
     await loadDefaultModel(worker);
 
     await page.getByLabelText("Option B").fill("   ");
@@ -245,7 +268,7 @@ describe("decision editing", () => {
 
 describe("comparison run", () => {
   it("sends the trimmed decision and renders both readouts", async () => {
-    const worker = setup();
+    const worker = await setup();
     await loadDefaultModel(worker);
 
     await page.getByTestId("run").click();
@@ -270,10 +293,10 @@ describe("comparison run", () => {
       ],
     });
 
-    await waitForText(page.getByTestId("direct-output"), /Account access support/);
-    await waitForText(page.getByTestId("direct-output"), /0\.700/);
-    await waitForText(page.getByTestId("direct-output"), /0\.200/);
-    await waitForText(page.getByTestId("direct-output"), /0\.100/);
+    await waitForTextMatching(page.getByTestId("direct-output"), /Account access support/);
+    await waitForTextMatching(page.getByTestId("direct-output"), /0\.700/);
+    await waitForTextMatching(page.getByTestId("direct-output"), /0\.200/);
+    await waitForTextMatching(page.getByTestId("direct-output"), /0\.100/);
     await vi.waitFor(async () => {
       const bar = await page.getByTestId("bar-A").findElement();
       expect(bar.getAttribute("style")).toContain("width: 70%");
@@ -281,7 +304,7 @@ describe("comparison run", () => {
 
     await emit(worker, { type: "generation-start" });
     await emit(worker, { type: "generation-update", text: '{"A: Account', tokens: 4, ttftMs: 300 });
-    await waitForText(page.getByTestId("generation-output"), /\{"A: Account/);
+    await waitForTextMatching(page.getByTestId("generation-output"), /\{"A: Account/);
 
     await emit(worker, {
       type: "complete",
@@ -298,13 +321,13 @@ describe("comparison run", () => {
       validationError: "",
     });
 
-    await waitForText(page.getByTestId("generation-verdict"), /valid JSON · top choice A/);
+    await waitForTextMatching(page.getByTestId("generation-verdict"), /valid JSON · top choice A/);
     await waitForText(page.getByTestId("ratio"), "6.00× generation / direct");
     await waitForDisabled(page.getByTestId("run"), false);
   });
 
   it("shows an unusable generation instead of hiding it", async () => {
-    const worker = setup();
+    const worker = await setup();
     await loadDefaultModel(worker);
 
     await page.getByTestId("run").click();
@@ -329,7 +352,7 @@ describe("comparison run", () => {
   });
 
   it("keeps the run available when a comparison fails after a successful load", async () => {
-    const worker = setup();
+    const worker = await setup();
     await loadDefaultModel(worker);
 
     await page.getByTestId("run").click();
@@ -338,7 +361,10 @@ describe("comparison run", () => {
       message: "The model did not return valid option logits for A, B, C.",
     });
 
-    await waitForText(page.getByTestId("support-text"), /did not return valid option logits/);
+    await waitForTextMatching(
+      page.getByTestId("support-text"),
+      /did not return valid option logits/,
+    );
     await waitForDisabled(page.getByTestId("run"), false);
   });
 });
