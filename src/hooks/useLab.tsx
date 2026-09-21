@@ -51,7 +51,7 @@ export function LabProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState(DEFAULT_DECISION.state);
   const [question, setQuestion] = useState(DEFAULT_DECISION.question);
   const [options, setOptions] = useState<string[]>(DEFAULT_DECISION.options);
-  const [readout, setReadout] = useState<ReadoutMode>("both");
+  const [readout, setReadout] = useState<ReadoutMode>("choices");
   const [useLocal] = useState(readLocalAssetsFlag);
   const [setupOpen, setSetupOpen] = useState(true);
 

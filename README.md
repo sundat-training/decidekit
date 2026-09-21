@@ -15,11 +15,12 @@ This is a live experiment, not a benchmark. The page shows only timings measured
 in the current tab. Model load and shader warmup are reported separately from
 both paths, and the paths run sequentially so they never contend for one GPU.
 
-Both is the default, but the readouts section of the setup area can restrict a
-run to one path. The other is then skipped entirely — not computed and not
-rendered — so a run costs only what it asks for. Restricting to one path also
-means there is no ratio to report: a single readout has nothing to be compared
-against.
+Choices only is the default, because one constrained forward pass does not make
+you wait for a generation you may not need. The readouts section of the setup
+area can widen a run to the JSON path or to both. A path that is not selected is
+skipped entirely — not computed and not rendered — so a run costs only what it
+asks for. Restricting to one path also means there is no ratio to report: a
+single readout has nothing to be compared against.
 
 Ported from the SemIf browser lab (formerly OpenJev).
 

@@ -86,6 +86,13 @@ async function waitForDisabled(locator: Locator, disabled: boolean): Promise<voi
   });
 }
 
+async function waitForChecked(locator: Locator, checked: boolean): Promise<void> {
+  await vi.waitFor(async () => {
+    const element = (await locator.findElement()) as HTMLInputElement;
+    expect(element.checked).toBe(checked);
+  });
+}
+
 async function waitForCount(locator: Locator, count: number): Promise<void> {
   await vi.waitFor(() => {
     expect(locator.elements()).toHaveLength(count);
@@ -158,6 +165,11 @@ function mainNav(): Locator {
   return page.getByRole("navigation", { name: "Main" });
 }
 
+/** Picks one of the readout modes in the setup section. */
+async function pickReadout(mode: "Choices only" | "JSON only" | "Both"): Promise<void> {
+  await page.getByRole("radio", { name: mode }).click();
+}
+
 /** Loads the default tier and waits until both paths can run. */
 async function loadDefaultModel(worker: FakeWorker): Promise<void> {
   await page.getByTestId("load").click();
@@ -185,11 +197,13 @@ describe("compatibility check", () => {
     await waitForDisabled(page.getByTestId("load"), true);
   });
 
-  it("keeps both result lanes empty until a run happens", async () => {
+  it("shows no results until a run happens", async () => {
     await setup();
 
     await waitForDisabled(page.getByTestId("run"), true);
-    expect(page.getByText("waiting for a run").elements()).toHaveLength(2);
+    // Choices is the default, so only the direct lane is on screen.
+    await waitForCount(page.getByText("waiting for a run"), 1);
+    expect(page.getByTestId("generation-output").elements()).toHaveLength(0);
   });
 });
 
@@ -370,6 +384,7 @@ describe("switching tiers", () => {
   it("drops the previous readouts when the tier changes", async () => {
     const worker = await setup();
     await loadDefaultModel(worker);
+    await pickReadout("Both");
 
     await page.getByTestId("run").click();
     await emit(worker, {
@@ -473,6 +488,7 @@ describe("comparison run", () => {
   it("sends the trimmed decision and renders both readouts", async () => {
     const worker = await setup();
     await loadDefaultModel(worker);
+    await pickReadout("Both");
 
     await page.getByTestId("run").click();
     expect(worker.requests.at(-1)).toEqual({
@@ -535,6 +551,7 @@ describe("comparison run", () => {
   it("shows an unusable generation instead of hiding it", async () => {
     const worker = await setup();
     await loadDefaultModel(worker);
+    await pickReadout("JSON only");
 
     await page.getByTestId("run").click();
     await emit(worker, {
@@ -562,6 +579,7 @@ describe("comparison run", () => {
   it("says so when a usable answer had to be unwrapped from a code fence", async () => {
     const worker = await setup();
     await loadDefaultModel(worker);
+    await pickReadout("JSON only");
 
     await page.getByTestId("run").click();
     await emit(worker, {
@@ -612,11 +630,11 @@ describe("readout selection", () => {
     { label: "C", description: "Close as resolved", probability: 0.1, logit: -2.1 },
   ];
 
-  it("computes and shows only the choices when that mode is picked", async () => {
+  it("starts on choices only and runs just that path", async () => {
     const worker = await setup();
     await loadDefaultModel(worker);
 
-    await page.getByRole("radio", { name: "Choices only" }).click();
+    await waitForChecked(page.getByRole("radio", { name: "Choices only" }), true);
     await waitForText(page.getByTestId("run"), "run the choices");
 
     await page.getByTestId("run").click();
@@ -652,12 +670,11 @@ describe("readout selection", () => {
     const worker = await setup();
     await loadDefaultModel(worker);
 
-    await page.getByRole("radio", { name: "JSON only" }).click();
+    await pickReadout("JSON only");
     await waitForText(page.getByTestId("run"), "run the json");
 
     await page.getByTestId("run").click();
     expect(worker.requests.at(-1)).toMatchObject({ type: "compare", readout: "json" });
-
     await emit(worker, { type: "generation-start" });
     await emit(worker, {
       type: "complete",
@@ -684,7 +701,7 @@ describe("readout selection", () => {
   it("keeps the selected readout when you leave the lab and come back", async () => {
     await setup();
 
-    await page.getByRole("radio", { name: "JSON only" }).click();
+    await pickReadout("JSON only");
     await waitForText(page.getByTestId("run"), "run the json");
 
     await mainNav().getByRole("link", { name: "About" }).click();
