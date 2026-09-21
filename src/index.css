@@ -127,12 +127,13 @@
   }
 
   /*
-   * Lucide draws its icons at a stroke width of 2. One step lighter keeps them
-   * from outweighing the small mono labels they sit next to. `stroke-width` is
+   * Lucide draws its icons at a stroke width of 2. One pixel keeps the small
+   * icons crisp next to the mono labels: a fractional width spreads the stroke
+   * over two device pixels and the glyph reads soft. `stroke-width` is
    * inherited, so setting it on the root svg reaches every path.
    */
   .lucide {
-    stroke-width: 1.5;
+    stroke-width: 1;
   }
 
   /* Numbers in metrics and option scores line up across rows. */
