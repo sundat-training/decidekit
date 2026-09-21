@@ -248,6 +248,7 @@ describe("model setup", () => {
     await waitForCount(page.getByTestId("load"), 0);
     await waitForCount(page.getByRole("combobox", { name: "Model" }), 0);
     await waitForCount(page.getByRole("heading", { level: 1 }), 1);
+    await waitForCount(page.getByText(/Both readout paths share one quantized model/), 0);
     await waitForTextMatching(
       page.getByTestId("current-model"),
       /MiniCPM5 2B · 1\.56 GB · not loaded/,
@@ -255,6 +256,7 @@ describe("model setup", () => {
 
     await page.getByTestId("setup-toggle").click();
     await waitForCount(page.getByTestId("load"), 1);
+    await waitForCount(page.getByText(/Both readout paths share one quantized model/), 1);
   });
 
   it("keeps the loaded model visible in the collapsed panel", async () => {

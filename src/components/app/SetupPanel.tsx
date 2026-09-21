@@ -151,7 +151,11 @@ export function SetupPanel({
         id="setup-title"
         level={headingLevel}
         title="Load the model once"
-        description="Both readout paths share one quantized model. Weights come from Hugging Face and stay in the browser cache."
+        description={
+          open
+            ? "Both readout paths share one quantized model. Weights come from Hugging Face and stay in the browser cache."
+            : undefined
+        }
         actions={
           <>
             <ModelStatus
