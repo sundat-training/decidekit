@@ -43,6 +43,8 @@ export interface GenerationVerdict {
   choice: string | null;
   choiceDescription: string | null;
   validationError: string;
+  /** True when the payload had to be unwrapped from a Markdown code fence. */
+  strippedFence: boolean;
 }
 
 export const GENERATION_MAX_TOKENS = 512;
@@ -74,8 +76,26 @@ export function generationInstruction(): string {
     'Return only one JSON object mapping each option to its probability. Form every key as "<label>: <full option text>" using the allowed options above.',
     'For example, if the unrelated options were "A. Route north" and "B. Route south", valid output would be:',
     '{"A: Route north": 0.65, "B: Route south": 0.35}',
-    "For the actual decision, include every supplied option exactly once and in order. Each value must be a JSON number from 0 to 1, and the probabilities must sum to 1. Output JSON only, with no markdown or explanation.",
+    "For the actual decision, include every supplied option exactly once and in order. Each value must be a JSON number from 0 to 1, and the probabilities must sum to 1. Output JSON only, with no markdown or explanation. Do not wrap it in a code fence.",
   ].join("\n");
+}
+
+/** Matches a fenced block, with or without a language tag and surrounding prose. */
+const CODE_FENCE = /```[a-zA-Z0-9]*[ \t]*\r?\n?([\s\S]*?)\r?\n?```/;
+
+/**
+ * Models routinely wrap a "JSON only" answer in a Markdown code fence, so the
+ * wrapper is removed before parsing. Everything else stays strict: the payload
+ * itself still has to parse and match the expected keys exactly.
+ */
+export function extractJsonPayload(raw: string): { payload: string; strippedFence: boolean } {
+  const withoutThinking = raw
+    .trim()
+    .replace(/^<think>[\s\S]*?<\/think>\s*/i, "")
+    .trim();
+  const fenced = CODE_FENCE.exec(withoutThinking);
+  if (fenced) return { payload: fenced[1].trim(), strippedFence: true };
+  return { payload: withoutThinking, strippedFence: false };
 }
 
 export function directInstruction(labels: string[]): string {
@@ -139,8 +159,8 @@ export function expectedKeys(input: DecisionInput): string[] {
 
 /** Keys the generation path must produce, in the order the options were given. */
 export function validateGeneration(text: string, input: DecisionInput): GenerationVerdict {
+  const { payload, strippedFence } = extractJsonPayload(text);
   try {
-    const payload = text.trim().replace(/^<think>[\s\S]*?<\/think>\s*/i, "");
     const parsed: unknown = JSON.parse(payload);
     const labels = optionLabels(input.options.length);
     const keys = expectedKeys(input);
@@ -172,6 +192,7 @@ export function validateGeneration(text: string, input: DecisionInput): Generati
       choice: labels[index],
       choiceDescription: input.options[index],
       validationError: "",
+      strippedFence,
     };
   } catch (error) {
     return {
@@ -179,6 +200,7 @@ export function validateGeneration(text: string, input: DecisionInput): Generati
       choice: null,
       choiceDescription: null,
       validationError: error instanceof Error ? error.message : "invalid JSON",
+      strippedFence,
     };
   }
 }

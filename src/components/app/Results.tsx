@@ -116,9 +116,10 @@ export interface GenerationLaneProps {
 
 function validationLine(result: GenerationResult) {
   if (result.valid) {
+    const unwrapped = result.strippedFence ? " · code fence stripped" : "";
     return {
       tone: "ok" as const,
-      text: `valid JSON · top choice ${result.choice}`,
+      text: `valid JSON${unwrapped} · top choice ${result.choice}`,
     };
   }
   return { tone: "error" as const, text: `unusable output · ${result.validationError}` };

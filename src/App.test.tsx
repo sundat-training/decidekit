@@ -319,6 +319,7 @@ describe("comparison run", () => {
       choice: "A",
       choiceDescription: "Account access support",
       validationError: "",
+      strippedFence: false,
     });
 
     await waitForTextMatching(page.getByTestId("generation-verdict"), /valid JSON · top choice A/);
@@ -343,11 +344,39 @@ describe("comparison run", () => {
       choice: null,
       choiceDescription: null,
       validationError: "expected one JSON object",
+      strippedFence: false,
     });
 
     await waitForText(
       page.getByTestId("generation-verdict"),
       "unusable output · expected one JSON object",
+    );
+  });
+
+  it("says so when a usable answer had to be unwrapped from a code fence", async () => {
+    const worker = await setup();
+    await loadDefaultModel(worker);
+
+    await page.getByTestId("run").click();
+    await emit(worker, {
+      type: "complete",
+      directMs: 900,
+      generationMs: 2600,
+      inputTokens: 120,
+      ttftMs: 300,
+      generatedTokens: 40,
+      generatedText:
+        '```json\n{"A: Account access support": 0.5, "B: Billing support": 0.4, "C: Close as resolved": 0.1}\n```',
+      valid: true,
+      choice: "A",
+      choiceDescription: "Account access support",
+      validationError: "",
+      strippedFence: true,
+    });
+
+    await waitForText(
+      page.getByTestId("generation-verdict"),
+      "valid JSON · code fence stripped · top choice A",
     );
   });
 

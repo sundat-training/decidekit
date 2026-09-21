@@ -4,6 +4,7 @@ import {
   assertValidOptionLogprobs,
   buildMessages,
   expectedKeys,
+  extractJsonPayload,
   GENERATION_MAX_TOKENS,
   grammarFor,
   optionBlock,
@@ -20,6 +21,11 @@ const INPUT: DecisionInput = {
   state: "A customer cannot log in.",
   question: "Which queue should handle this request?",
   options: ["Account access support", "Billing support"],
+};
+
+const THREE: DecisionInput = {
+  ...INPUT,
+  options: ["Account access support", "Billing support", "Close as resolved"],
 };
 
 function userMessage(mode: "direct" | "generation"): string {
@@ -171,7 +177,52 @@ describe("generation validation", () => {
       choice: "A",
       choiceDescription: "Account access support",
       validationError: "",
+      strippedFence: false,
     });
+  });
+
+  it("unwraps a Markdown code fence", () => {
+    const verdict = validateGeneration(
+      '```json\n{"A: Account access support": 0.5, "B: Billing support": 0.4, "C: Close as resolved": 0.1}\n```',
+      THREE,
+    );
+    expect(verdict.valid).toBe(true);
+    expect(verdict.strippedFence).toBe(true);
+    expect(verdict.choice).toBe("A");
+    expect(verdict.validationError).toBe("");
+  });
+
+  it("unwraps a bare fence that is surrounded by prose", () => {
+    const verdict = validateGeneration(
+      'Here is the distribution:\n```\n{"A: Account access support": 0.2, "B: Billing support": 0.8}\n```\nHope that helps.',
+      INPUT,
+    );
+    expect(verdict.valid).toBe(true);
+    expect(verdict.strippedFence).toBe(true);
+    expect(verdict.choice).toBe("B");
+  });
+
+  it("unwraps a fence that follows a thinking block", () => {
+    const verdict = validateGeneration(
+      '<think>weighing options</think>\n```json\n{"A: Account access support": 0.3, "B: Billing support": 0.7}\n```',
+      INPUT,
+    );
+    expect(verdict.valid).toBe(true);
+    expect(verdict.strippedFence).toBe(true);
+    expect(verdict.choice).toBe("B");
+  });
+
+  it("still rejects a fenced payload that does not match the options", () => {
+    const verdict = validateGeneration('```json\n{"A: something else": 1}\n```', INPUT);
+    expect(verdict.valid).toBe(false);
+    expect(verdict.strippedFence).toBe(true);
+    expect(verdict.validationError).toBe("expected one probability for every exact option key");
+  });
+
+  it("keeps an unfenced payload unstripped", () => {
+    const { payload, strippedFence } = extractJsonPayload('  {"A": 1}  ');
+    expect(payload).toBe('{"A": 1}');
+    expect(strippedFence).toBe(false);
   });
 
   it("strips a thinking block before parsing", () => {
