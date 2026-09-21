@@ -93,18 +93,26 @@ src/
   lib/                 pure logic: decision contract, model pins, download tracking, formatting
   lib/inference/       both readout paths against a narrow completion client, plus the worker protocol
   worker/              the Web Worker driver and the vendored wllama loader
-  hooks/               useInference: worker lifecycle, message state machine, input guards
+  hooks/               useInference (worker lifecycle, state machine), useLab (state above the router)
   components/ui/       shadcn-style primitives on Tailwind v4 tokens
-  components/app/      the page sections
+  components/app/      shared page sections and the site chrome
+  pages/               one component per route: Lab, About, NotFound
+  router.tsx           route table, browser history, scroll restoration
 public/
   vendor/wllama/       vendored wllama 3.6.1 runtime (MIT) and its wasm
   _headers             COOP/COEP and Referrer-Policy for static hosts
+  _redirects           single-page-app fallback for hosts that read it
 ```
 
 The worker is loaded with `new Worker(new URL(...), { type: "module" })` so Vite
 bundles it. The vendored engine itself is deliberately not bundled: it is fetched
 at runtime from `/vendor/wllama/index.js` because the prebuilt WASM runtime
 resolves its own assets relative to its script URL.
+
+The lab's worker, loaded model and edited decision live in `useLab`, which is
+mounted **above** the router. Navigating to another route therefore does not
+throw away a model that took minutes to download and compile. Keep it that way:
+state that belongs to a run must not move into a route component.
 
 ## Deployment
 
@@ -116,6 +124,11 @@ Keep `_headers` on hosts that read it (Cloudflare Pages, Netlify, and similar).
 It keeps the page cross-origin isolated, which is what allows the WASM runtime to
 use more than one thread, and it prevents the hosting URL from being sent as a
 referrer to Hugging Face.
+
+Routing is client-side, so the host has to serve `index.html` for unknown paths
+or a direct visit to `/about` will 404. `_redirects` covers Cloudflare Pages and
+Netlify. On other hosts add the equivalent rewrite, or reach the pages through
+the in-app navigation.
 
 ## Testing
 
@@ -131,14 +144,16 @@ ships rather than in a simulated environment:
   limitations and cross-origin headers still present, vendored engine served.
 - **Component behaviour** — the page rendered with a stub worker and a stub
   WebGPU probe, so the suite needs neither a GPU nor a model download.
+- **Routing** — client-side navigation, deep links to each route, the not-found
+  path, and that a loaded model and an edited decision survive leaving the lab.
 
 ## Pins
 
 - wllama `3.6.1`, vendored under `public/vendor/wllama`
 - Model revisions are fixed in `src/lib/models.ts` and asserted by tests
-- The UI is React 19, Tailwind CSS v4 and shadcn-style components; the upstream
-  Vue CDN build and the Material Symbols CDN are gone, and the fonts are
-  self-hosted
+- The UI is React 19 with `react-router`, Tailwind CSS v4 and shadcn-style
+  components; the upstream Vue CDN build and the Material Symbols CDN are gone,
+  and the fonts are self-hosted
 
 ## Limitations
 

@@ -1,11 +1,12 @@
 import { page, type Locator } from "vitest/browser";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 
 import { App } from "@/App";
 import type { WebGPUProbe, WorkerLike } from "@/hooks/useInference";
 import type { WorkerEvent, WorkerRequest } from "@/lib/inference/protocol";
 import { DEFAULT_DECISION } from "@/lib/presets";
+import { createAppRouter } from "@/router";
 
 /** Stands in for the inference worker so the lab runs without a GPU. */
 class FakeWorker {
@@ -118,10 +119,27 @@ async function emitWorkerError(worker: FakeWorker, message: string): Promise<voi
   worker.emitWorkerError(message);
 }
 
+/** Every test starts on the lab route with its own router history. */
+beforeEach(() => {
+  window.history.replaceState(null, "", "/");
+});
+
 async function setup(probe: WebGPUProbe = READY_PROBE) {
   const worker = new FakeWorker();
-  await render(<App createWorker={() => worker.asWorkerLike()} probe={probe} />);
+  await render(
+    <App createWorker={() => worker.asWorkerLike()} probe={probe} router={createAppRouter()} />,
+  );
   return worker;
+}
+
+/** Renders the app straight at a path, without going through the lab first. */
+async function setupAt(path: string, probe: WebGPUProbe = READY_PROBE) {
+  window.history.replaceState(null, "", path);
+  return setup(probe);
+}
+
+function mainNav(): Locator {
+  return page.getByRole("navigation", { name: "Main" });
 }
 
 /** Loads the default tier and waits until both paths can run. */
@@ -395,5 +413,68 @@ describe("comparison run", () => {
       /did not return valid option logits/,
     );
     await waitForDisabled(page.getByTestId("run"), false);
+  });
+});
+
+describe("routing", () => {
+  it("navigates between the lab and the about page", async () => {
+    await setup();
+
+    await mainNav().getByRole("link", { name: "About" }).click();
+    await waitForTextMatching(page.getByRole("heading", { level: 1 }), /live, local experiment/);
+    expect(window.location.pathname).toBe("/about");
+
+    await page.getByRole("link", { name: "Open the lab" }).click();
+    await waitForTextMatching(
+      page.getByRole("heading", { level: 1 }),
+      /Two ways to read a decision/,
+    );
+    expect(window.location.pathname).toBe("/");
+  });
+
+  it("serves the about page on a direct visit", async () => {
+    await setupAt("/about");
+
+    await waitForTextMatching(page.getByRole("heading", { level: 1 }), /live, local experiment/);
+    expect(page.getByTestId("run").elements()).toHaveLength(0);
+    expect(page.getByTestId("option-row").elements()).toHaveLength(0);
+  });
+
+  it("keeps a loaded model when you visit the about page and come back", async () => {
+    const worker = await setup();
+    await loadDefaultModel(worker);
+
+    await mainNav().getByRole("link", { name: "About" }).click();
+    await waitForTextMatching(page.getByRole("heading", { level: 1 }), /live, local experiment/);
+
+    await mainNav().getByRole("link", { name: "Lab" }).click();
+    await waitForDisabled(page.getByTestId("run"), false);
+    await waitForTextMatching(page.getByTestId("support-text"), /MiniCPM5 2B is loaded locally/);
+  });
+
+  it("keeps the edited decision when you leave the lab and come back", async () => {
+    await setup();
+
+    await page.getByTestId("preset-email").click();
+    await waitForFieldValue(
+      page.getByLabelText("Question"),
+      "How should this email be classified?",
+    );
+
+    await mainNav().getByRole("link", { name: "About" }).click();
+    await waitForTextMatching(page.getByRole("heading", { level: 1 }), /live, local experiment/);
+    await mainNav().getByRole("link", { name: "Lab" }).click();
+
+    await waitForFieldValue(
+      page.getByLabelText("Question"),
+      "How should this email be classified?",
+    );
+    await waitForFieldValue(page.getByLabelText("Option A"), "Legitimate");
+  });
+
+  it("shows a not-found page for an unknown path", async () => {
+    await setupAt("/nope");
+
+    await waitForTextMatching(page.getByRole("heading", { level: 1 }), /does not exist/);
   });
 });

@@ -25,9 +25,18 @@ const PINNED_REVISIONS = [
 
 describe("browser-only contract", () => {
   it("has no backend surface", () => {
-    expect(combined).not.toContain("WebSocket");
-    expect(combined).not.toContain("XMLHttpRequest");
-    expect(combined).not.toMatch(/\/api\/(?:generate|score)/);
+    // Usage, not prose: the About page may state that none of this exists.
+    const backendUsage = [
+      /new\s+WebSocket\b/,
+      /\bWebSocket\s*\(/,
+      /new\s+XMLHttpRequest\b/,
+      /new\s+EventSource\b/,
+      /\bsendBeacon\s*\(/,
+      /\/api\/(?:generate|score)/,
+    ];
+    for (const pattern of backendUsage) {
+      expect(combined, `source must not use ${String(pattern)}`).not.toMatch(pattern);
+    }
   });
 
   it("times real work instead of shipping canned numbers", () => {

@@ -10,7 +10,8 @@ import { MODELS, MODEL_IDS, PUBLISHED_BASELINE, QUALITY_NOTE, type ModelId } fro
 import { cn } from "@/lib/utils";
 
 export interface ModelQualityTableProps {
-  selected: ModelId;
+  /** Highlights the tier currently selected in the lab, when there is one. */
+  selected?: ModelId;
 }
 
 export function ModelQualityTable({ selected }: ModelQualityTableProps) {

@@ -1,0 +1,3 @@
+# Single-page app: every route is served by the same document.
+# Read by Cloudflare Pages, Netlify and similar static hosts.
+/*    /index.html   200
