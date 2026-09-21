@@ -177,7 +177,11 @@ export function SetupPanel({
               title={open ? "Hide setup" : "Show setup"}
               data-testid="setup-toggle"
             >
-              {open ? <PanelTopClose aria-hidden="true" /> : <PanelTopOpen aria-hidden="true" />}
+              {open ? (
+                <PanelTopClose className="size-5 lucide-crisp" aria-hidden="true" />
+              ) : (
+                <PanelTopOpen className="size-5 lucide-crisp" aria-hidden="true" />
+              )}
             </Button>
           </>
         }

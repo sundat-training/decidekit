@@ -127,13 +127,20 @@
   }
 
   /*
-   * Lucide draws its icons at a stroke width of 2. One pixel keeps the small
-   * icons crisp next to the mono labels: a fractional width spreads the stroke
-   * over two device pixels and the glyph reads soft. `stroke-width` is
-   * inherited, so setting it on the root svg reaches every path.
+   * Lucide draws on a 24 unit grid with a stroke width of 2. A thin stroke only
+   * stays sharp where that grid lands on whole device pixels, so the rendering
+   * size decides: at 16px the scale is 2/3 and a 1px stroke straddles two
+   * pixels, which is what reads as washed out. Rendered at 20px, a 1.2 stroke
+   * is exactly one pixel wide and the glyph's straight edges, which sit on odd
+   * grid lines, fall on half pixels. Icons that need to stay sharp use
+   * `lucide-crisp` with a `size-5` box.
    */
   .lucide {
     stroke-width: 1;
+  }
+
+  svg.lucide-crisp {
+    stroke-width: 1.2;
   }
 
   /* Numbers in metrics and option scores line up across rows. */
