@@ -1,6 +1,5 @@
 import { Link } from "react-router";
 
-import { Hero } from "@/components/app/Hero";
 import { MethodMap } from "@/components/app/MethodMap";
 import { ResultsSection } from "@/components/app/Results";
 import { SetupPanel } from "@/components/app/SetupPanel";
@@ -14,10 +13,6 @@ export function Lab() {
   const { inference, model } = lab;
   const result = inference.result;
 
-  const deviceNote = lab.smallDevice
-    ? `Small device detected · ${model.name} is selected. Switch to Qwen3 0.6B in the setup panel if loading is too heavy.`
-    : `Desktop detected · ${model.name} is selected by default.`;
-
   const ratio = result
     ? `${(result.generationMs / result.directMs).toFixed(2)}× generation / direct`
     : "run it on your GPU";
@@ -28,12 +23,11 @@ export function Lab() {
 
   return (
     <>
-      <Hero modelSize={model.size} deviceNote={deviceNote} />
-
       <SetupPanel
         selected={lab.modelId}
         onSelect={lab.selectModel}
         onLoad={() => inference.loadModel(lab.modelId, lab.useLocal)}
+        headingLevel={1}
         webgpuOk={inference.webgpuOk}
         canLoad={inference.canLoad}
         loading={inference.busy === "load"}

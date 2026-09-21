@@ -425,10 +425,7 @@ describe("routing", () => {
     expect(window.location.pathname).toBe("/about");
 
     await page.getByRole("link", { name: "Open the lab" }).click();
-    await waitForTextMatching(
-      page.getByRole("heading", { level: 1 }),
-      /Two ways to read a decision/,
-    );
+    await waitForTextMatching(page.getByRole("heading", { level: 1 }), /Load the model once/);
     expect(window.location.pathname).toBe("/");
   });
 

@@ -11,6 +11,11 @@ export interface SectionHeadingProps {
   actions?: React.ReactNode;
   id?: string;
   className?: string;
+  /**
+   * Heading level. A page whose first section doubles as the page title passes
+   * `1`; everything else keeps `2` so the outline stays flat.
+   */
+  level?: 1 | 2;
 }
 
 export function SectionHeading({
@@ -21,7 +26,10 @@ export function SectionHeading({
   actions,
   id,
   className,
+  level = 2,
 }: SectionHeadingProps) {
+  const Heading: "h1" | "h2" = level === 1 ? "h1" : "h2";
+
   return (
     <div
       className={cn(
@@ -33,9 +41,9 @@ export function SectionHeading({
         <p className="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase">
           {index} / {label}
         </p>
-        <h2 id={id} className="font-display text-2xl leading-tight tracking-tight sm:text-3xl">
+        <Heading id={id} className="font-display text-2xl leading-tight tracking-tight sm:text-3xl">
           {title}
-        </h2>
+        </Heading>
         {description ? (
           <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">{description}</p>
         ) : null}

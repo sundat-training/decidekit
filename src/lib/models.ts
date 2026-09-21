@@ -113,19 +113,3 @@ export const PUBLISHED_BASELINE = {
 
 export const QUALITY_NOTE =
   "Owned columns are balanced accuracy. TypeSafe is equal-case agreement on the same 102-row public subset; Jev is the published value. Browser quantization may change model accuracy.";
-
-/** Phone-class devices get a pointer toward the smallest tier. */
-export function detectSmallDevice(): boolean {
-  // Typed structurally so this module stays free of DOM-only lib types and can
-  // also be type-checked inside the worker program.
-  const scope = globalThis as {
-    navigator?: { userAgent?: string; userAgentData?: { mobile?: boolean } };
-    matchMedia?: (query: string) => { matches: boolean };
-  };
-  const userAgent = scope.navigator?.userAgent ?? "";
-  return (
-    scope.navigator?.userAgentData?.mobile === true ||
-    /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent) ||
-    scope.matchMedia?.("(max-width: 600px)").matches === true
-  );
-}

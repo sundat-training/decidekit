@@ -29,6 +29,8 @@ export interface SetupPanelProps {
   selected: ModelId;
   onSelect: (id: ModelId) => void;
   onLoad: () => void;
+  /** `1` when this section doubles as the page title. */
+  headingLevel?: 1 | 2;
   webgpuOk: boolean;
   canLoad: boolean;
   loading: boolean;
@@ -62,6 +64,7 @@ export function SetupPanel({
   selected,
   onSelect,
   onLoad,
+  headingLevel,
   webgpuOk,
   canLoad,
   loading,
@@ -92,6 +95,7 @@ export function SetupPanel({
         index="01"
         label="setup"
         id="setup-title"
+        level={headingLevel}
         title="Load the model once"
         description="Both readout paths share one quantized model. Weights come from Hugging Face and stay in the browser cache."
         actions={

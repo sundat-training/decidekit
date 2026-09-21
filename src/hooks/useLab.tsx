@@ -2,13 +2,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 
 import { useInference, type InferenceApi } from "@/hooks/useInference";
 import { useInferenceConfig } from "@/hooks/useInferenceConfig";
-import {
-  DEFAULT_MODEL_ID,
-  MODELS,
-  detectSmallDevice,
-  type ModelId,
-  type ModelTier,
-} from "@/lib/models";
+import { DEFAULT_MODEL_ID, MODELS, type ModelId, type ModelTier } from "@/lib/models";
 import { DEFAULT_DECISION, type DecisionPreset } from "@/lib/presets";
 
 /** `?local` on localhost switches the loader to files under `public/assets/`. */
@@ -35,7 +29,6 @@ export interface LabContextValue {
   run: () => void;
   running: boolean;
   useLocal: boolean;
-  smallDevice: boolean;
 }
 
 const LabContext = createContext<LabContextValue | null>(null);
@@ -52,7 +45,6 @@ export function LabProvider({ children }: { children: ReactNode }) {
   const [question, setQuestion] = useState(DEFAULT_DECISION.question);
   const [options, setOptions] = useState<string[]>(DEFAULT_DECISION.options);
   const [useLocal] = useState(readLocalAssetsFlag);
-  const [smallDevice] = useState(detectSmallDevice);
 
   const applyPreset = useCallback((preset: DecisionPreset) => {
     setState(preset.state);
@@ -84,9 +76,8 @@ export function LabProvider({ children }: { children: ReactNode }) {
       run,
       running: inference.busy === "run",
       useLocal,
-      smallDevice,
     }),
-    [inference, modelId, state, question, options, applyPreset, run, useLocal, smallDevice],
+    [inference, modelId, state, question, options, applyPreset, run, useLocal],
   );
 
   return <LabContext.Provider value={value}>{children}</LabContext.Provider>;
