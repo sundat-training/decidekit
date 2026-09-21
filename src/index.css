@@ -126,6 +126,15 @@
     background: color-mix(in oklab, var(--direct) 22%, transparent);
   }
 
+  /*
+   * Lucide draws its icons at a stroke width of 2. One step lighter keeps them
+   * from outweighing the small mono labels they sit next to. `stroke-width` is
+   * inherited, so setting it on the root svg reaches every path.
+   */
+  .lucide {
+    stroke-width: 1.5;
+  }
+
   /* Numbers in metrics and option scores line up across rows. */
   .metric-value {
     font-variant-numeric: tabular-nums;
