@@ -92,6 +92,21 @@ async function waitForCount(locator: Locator, count: number): Promise<void> {
   });
 }
 
+async function waitForAttribute(locator: Locator, name: string, expected: string): Promise<void> {
+  await vi.waitFor(async () => {
+    const element = await locator.findElement();
+    expect(element.getAttribute(name)).toBe(expected);
+  });
+}
+
+/** `sr-only` keeps an element in the outline while taking it out of the layout. */
+async function waitForSrOnly(locator: Locator, srOnly: boolean): Promise<void> {
+  await vi.waitFor(async () => {
+    const element = (await locator.findElement()) as HTMLElement;
+    expect(element.classList.contains("sr-only")).toBe(srOnly);
+  });
+}
+
 async function waitForFieldValue(locator: Locator, expected: string): Promise<void> {
   await vi.waitFor(async () => {
     const element = (await locator.findElement()) as HTMLInputElement | HTMLTextAreaElement;
@@ -237,26 +252,33 @@ describe("model setup", () => {
   it("hides the setup details but keeps the current model visible", async () => {
     await setup();
 
+    const title = page.getByRole("heading", { level: 1, name: "Load the model once" });
+
     await waitForTextMatching(
       page.getByTestId("current-model"),
       /MiniCPM5 2B · 1\.56 GB · not loaded/,
     );
     await waitForCount(page.getByTestId("load"), 1);
+    await waitForAttribute(page.getByTestId("setup-toggle"), "aria-label", "Hide setup");
+    await waitForSrOnly(title, false);
 
     await page.getByTestId("setup-toggle").click();
 
     await waitForCount(page.getByTestId("load"), 0);
     await waitForCount(page.getByRole("combobox", { name: "Model" }), 0);
-    await waitForCount(page.getByRole("heading", { level: 1 }), 1);
     await waitForCount(page.getByText(/Both readout paths share one quantized model/), 0);
+    await waitForAttribute(page.getByTestId("setup-toggle"), "aria-label", "Show setup");
     await waitForTextMatching(
       page.getByTestId("current-model"),
       /MiniCPM5 2B · 1\.56 GB · not loaded/,
     );
+    // The title leaves the layout but stays in the document outline.
+    await waitForSrOnly(title, true);
 
     await page.getByTestId("setup-toggle").click();
     await waitForCount(page.getByTestId("load"), 1);
     await waitForCount(page.getByText(/Both readout paths share one quantized model/), 1);
+    await waitForSrOnly(title, false);
   });
 
   it("keeps the loaded model visible in the collapsed panel", async () => {

@@ -1,11 +1,12 @@
 import {
   Check,
-  ChevronDown,
   CircleAlert,
   CircleCheck,
   Download,
   Info,
   LoaderCircle,
+  PanelTopClose,
+  PanelTopOpen,
   RotateCcw,
 } from "lucide-react";
 
@@ -151,12 +152,13 @@ export function SetupPanel({
         id="setup-title"
         level={headingLevel}
         title="Load the model once"
+        titleHidden={!open}
         description={
           open
             ? "Both readout paths share one quantized model. Weights come from Hugging Face and stay in the browser cache."
             : undefined
         }
-        actions={
+        eyebrowAction={
           <>
             <ModelStatus
               modelName={model.name}
@@ -166,16 +168,16 @@ export function SetupPanel({
               failed={failed}
             />
             <Button
-              variant="outline"
+              variant="ghost"
+              size="icon"
+              className="size-7"
               onClick={onToggleOpen}
               aria-expanded={open}
+              aria-label={open ? "Hide setup" : "Show setup"}
+              title={open ? "Hide setup" : "Show setup"}
               data-testid="setup-toggle"
             >
-              <ChevronDown
-                className={cn("transition-transform", open && "rotate-180")}
-                aria-hidden="true"
-              />
-              {open ? "Hide setup" : "Show setup"}
+              {open ? <PanelTopClose aria-hidden="true" /> : <PanelTopOpen aria-hidden="true" />}
             </Button>
           </>
         }
