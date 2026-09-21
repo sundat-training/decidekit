@@ -1,0 +1,13 @@
+# Local agent configuration
+.opencode/
+opencode.jsonc
+AGENTS.md
+
+# Node / Bun
+node_modules/
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
