@@ -10,6 +10,7 @@ import type {
   WorkerRequest,
 } from "@/lib/inference/protocol";
 import { isModelId, type ModelId } from "@/lib/models";
+import type { ReadoutMode } from "@/lib/readout";
 import { readCachedTiers, rememberTier } from "@/lib/tierCache";
 import { probeWebGPU, type WebGPUStatus } from "@/lib/webgpu";
 
@@ -26,10 +27,6 @@ export type WebGPUProbe = () => Promise<WebGPUStatus>;
 
 export type SupportTone = "info" | "ok" | "error";
 
-export interface ComparisonResult extends GenerationResult {
-  directMs: number;
-}
-
 export interface InferenceState {
   webgpuChecked: boolean;
   webgpuOk: boolean;
@@ -43,7 +40,8 @@ export interface InferenceState {
   loadedModelId: ModelId | null;
   direct: DirectResult | null;
   stream: GenerationUpdate | null;
-  result: ComparisonResult | null;
+  /** The generation result, or null when the run did not ask for one. */
+  result: GenerationResult | null;
 }
 
 const initialState: InferenceState = {
@@ -159,9 +157,11 @@ function applyWorkerEvent(state: InferenceState, event: WorkerEvent): InferenceS
       return {
         ...state,
         busy: null,
-        result: event,
+        result: event.generation,
         support: {
-          text: "Comparison complete. Edit the decision and run again whenever you like.",
+          text: event.generation
+            ? "Comparison complete. Edit the decision and run again whenever you like."
+            : "Direct readout complete. Edit the decision and run again whenever you like.",
           tone: "ok",
         },
       };
@@ -191,7 +191,7 @@ export interface InferenceApi extends InferenceState {
   /** Tiers this browser has loaded before, so a switch should skip the download. */
   cachedTiers: ModelId[];
   loadModel: (modelId: ModelId, useLocal: boolean) => void;
-  runComparison: (input: DecisionInput) => boolean;
+  runComparison: (input: DecisionInput, readout: ReadoutMode) => boolean;
   reportSupport: (text: string, tone: SupportTone) => void;
 }
 
@@ -281,14 +281,14 @@ export function useInference(options: UseInferenceOptions = {}): InferenceApi {
   );
 
   const runComparison = useCallback(
-    (input: DecisionInput): boolean => {
+    (input: DecisionInput, readout: ReadoutMode): boolean => {
       const problem = validateDecisionInput(input);
       if (problem) {
         dispatch({ type: "support", text: problem, tone: "error" });
         return false;
       }
       dispatch({ type: "start-run" });
-      ensureWorker().postMessage({ type: "compare", data: input });
+      ensureWorker().postMessage({ type: "compare", data: input, readout });
       return true;
     },
     [ensureWorker],

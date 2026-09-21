@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PRESETS, type DecisionPreset } from "@/lib/presets";
+import { READOUT_RUN_LABEL, type ReadoutMode } from "@/lib/readout";
 
 export interface WorkbenchProps {
   state: string;
@@ -20,6 +21,7 @@ export interface WorkbenchProps {
   onRun: () => void;
   canRun: boolean;
   running: boolean;
+  readout: ReadoutMode;
 }
 
 export function Workbench({
@@ -33,16 +35,21 @@ export function Workbench({
   onRun,
   canRun,
   running,
+  readout,
 }: WorkbenchProps) {
   return (
     <Card className="gap-0 py-6">
       <SectionHeading
         className="px-6"
-        index="02"
+        index="03"
         label="decision"
         id="workbench-title"
         title="Give it a real choice"
-        description="Both paths receive the exact same state, question and options."
+        description={
+          readout === "both"
+            ? "Both paths receive the exact same state, question and options."
+            : "The selected readout receives this state, question and options."
+        }
         actions={
           <Button onClick={onRun} disabled={!canRun} data-testid="run">
             {running ? (
@@ -50,7 +57,7 @@ export function Workbench({
             ) : (
               <Play aria-hidden="true" />
             )}
-            {running ? "running…" : "run both methods"}
+            {running ? "running…" : READOUT_RUN_LABEL[readout]}
           </Button>
         }
       />

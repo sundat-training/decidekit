@@ -1,6 +1,7 @@
 import type { GenerationVerdict } from "@/lib/decision";
 import type { LoaderProgressEvent } from "@/lib/download";
 import type { ModelId } from "@/lib/models";
+import type { ReadoutMode } from "@/lib/readout";
 
 export interface DirectOptionScore {
   label: string;
@@ -39,7 +40,7 @@ export interface CompareInput {
 /** Messages the page sends into the inference worker. */
 export type WorkerRequest =
   | { type: "load"; modelId: ModelId; useLocal: boolean }
-  | { type: "compare"; data: CompareInput };
+  | { type: "compare"; data: CompareInput; readout: ReadoutMode };
 
 /** Messages the inference worker sends back. */
 export type WorkerEvent =
@@ -50,5 +51,9 @@ export type WorkerEvent =
   | ({ type: "direct" } & DirectResult)
   | { type: "generation-start" }
   | ({ type: "generation-update" } & GenerationUpdate)
-  | ({ type: "complete"; directMs: number } & GenerationResult)
+  /**
+   * The run is over. `generation` is null when only the direct readout was
+   * asked for, so the UI can clear its running state either way.
+   */
+  | { type: "complete"; generation: GenerationResult | null }
   | { type: "error"; message: string };

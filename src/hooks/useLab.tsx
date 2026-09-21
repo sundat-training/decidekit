@@ -4,6 +4,7 @@ import { useInference, type InferenceApi } from "@/hooks/useInference";
 import { useInferenceConfig } from "@/hooks/useInferenceConfig";
 import { DEFAULT_MODEL_ID, MODELS, type ModelId, type ModelTier } from "@/lib/models";
 import { DEFAULT_DECISION, type DecisionPreset } from "@/lib/presets";
+import type { ReadoutMode } from "@/lib/readout";
 
 /** `?local` on localhost switches the loader to files under `public/assets/`. */
 function readLocalAssetsFlag(): boolean {
@@ -26,6 +27,9 @@ export interface LabContextValue {
   setQuestion: (value: string) => void;
   setOptions: (options: string[]) => void;
   applyPreset: (preset: DecisionPreset) => void;
+  /** Which readouts the next run computes and the page displays. */
+  readout: ReadoutMode;
+  setReadout: (mode: ReadoutMode) => void;
   run: () => void;
   running: boolean;
   useLocal: boolean;
@@ -47,6 +51,7 @@ export function LabProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState(DEFAULT_DECISION.state);
   const [question, setQuestion] = useState(DEFAULT_DECISION.question);
   const [options, setOptions] = useState<string[]>(DEFAULT_DECISION.options);
+  const [readout, setReadout] = useState<ReadoutMode>("both");
   const [useLocal] = useState(readLocalAssetsFlag);
   const [setupOpen, setSetupOpen] = useState(true);
 
@@ -59,12 +64,15 @@ export function LabProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const run = useCallback(() => {
-    inference.runComparison({
-      state: state.trim(),
-      question: question.trim(),
-      options: options.map((option) => option.trim()),
-    });
-  }, [inference, state, question, options]);
+    inference.runComparison(
+      {
+        state: state.trim(),
+        question: question.trim(),
+        options: options.map((option) => option.trim()),
+      },
+      readout,
+    );
+  }, [inference, state, question, options, readout]);
 
   const value = useMemo<LabContextValue>(
     () => ({
@@ -79,6 +87,8 @@ export function LabProvider({ children }: { children: ReactNode }) {
       setQuestion,
       setOptions,
       applyPreset,
+      readout,
+      setReadout,
       run,
       running: inference.busy === "run",
       useLocal,
@@ -92,6 +102,7 @@ export function LabProvider({ children }: { children: ReactNode }) {
       question,
       options,
       applyPreset,
+      readout,
       run,
       useLocal,
       setupOpen,

@@ -1,25 +1,25 @@
 import { Link } from "react-router";
 
 import { MethodMap } from "@/components/app/MethodMap";
+import { ReadoutPanel } from "@/components/app/ReadoutPanel";
 import { ResultsSection } from "@/components/app/Results";
 import { SetupPanel } from "@/components/app/SetupPanel";
 import { VerdictBar } from "@/components/app/VerdictBar";
 import { Workbench } from "@/components/app/Workbench";
 import { useLab } from "@/hooks/useLab";
-import { formatSeconds } from "@/lib/format";
+import { describeVerdict } from "@/lib/verdict";
 
 export function Lab() {
   const lab = useLab();
   const { inference, model } = lab;
   const result = inference.result;
 
-  const ratio = result
-    ? `${(result.generationMs / result.directMs).toFixed(2)}× generation / direct`
-    : "run it on your GPU";
-
-  const note = result
-    ? `Measured sequentially in this tab. Direct: ${formatSeconds(result.directMs)}. Generation: ${formatSeconds(result.generationMs)}. The order is fixed and the model was warmed before both.`
-    : "The methods run sequentially on the same loaded model so they never contend for one GPU. Direct runs first, then generation.";
+  const verdict = describeVerdict({
+    readout: lab.readout,
+    directMs: inference.direct?.totalMs ?? null,
+    generationMs: result?.generationMs ?? null,
+    generatedTokens: result?.generatedTokens ?? null,
+  });
 
   return (
     <>
@@ -43,6 +43,12 @@ export function Lab() {
         support={inference.support}
       />
 
+      <ReadoutPanel
+        readout={lab.readout}
+        onReadoutChange={lab.setReadout}
+        disabled={inference.busy !== null}
+      />
+
       <Workbench
         state={lab.state}
         question={lab.question}
@@ -54,6 +60,7 @@ export function Lab() {
         onRun={lab.run}
         canRun={inference.canRun}
         running={lab.running}
+        readout={lab.readout}
       />
 
       <MethodMap modelShort={model.short} optionCount={lab.options.length} />
@@ -63,6 +70,7 @@ export function Lab() {
         stream={inference.stream}
         result={result}
         running={lab.running}
+        readout={lab.readout}
       />
 
       <p className="text-xs leading-relaxed text-muted-foreground">
@@ -72,7 +80,7 @@ export function Lab() {
         </Link>
       </p>
 
-      <VerdictBar ratio={ratio} note={note} />
+      <VerdictBar label={verdict.label} ratio={verdict.ratio} note={verdict.note} />
     </>
   );
 }

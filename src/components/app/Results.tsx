@@ -10,6 +10,7 @@ import type {
   GenerationResult,
   GenerationUpdate,
 } from "@/lib/inference/protocol";
+import { includesChoices, includesJson, type ReadoutMode } from "@/lib/readout";
 import { cn } from "@/lib/utils";
 
 function Placeholder({
@@ -77,7 +78,7 @@ export function DirectLane({ direct, running }: DirectLaneProps) {
       <CardHeader className="pb-3">
         <div className="flex flex-col gap-1">
           <p className="font-mono text-[10px] tracking-[0.16em] text-muted-foreground uppercase">
-            02A / direct readout
+            03A / direct readout
           </p>
           <CardTitle>Choice probabilities</CardTitle>
         </div>
@@ -135,7 +136,7 @@ export function GenerationLane({ stream, result, running }: GenerationLaneProps)
       <CardHeader className="pb-3">
         <div className="flex flex-col gap-1">
           <p className="font-mono text-[10px] tracking-[0.16em] text-muted-foreground uppercase">
-            02B / generation
+            03B / generation
           </p>
           <CardTitle>JSON probabilities</CardTitle>
         </div>
@@ -196,13 +197,18 @@ export function GenerationLane({ stream, result, running }: GenerationLaneProps)
 
 export interface ResultsSectionProps extends DirectLaneProps, Omit<GenerationLaneProps, "running"> {
   running: boolean;
+  /** Lanes the chosen mode computes; the others are not rendered at all. */
+  readout: ReadoutMode;
 }
 
-export function ResultsSection({ direct, stream, result, running }: ResultsSectionProps) {
+export function ResultsSection({ direct, stream, result, running, readout }: ResultsSectionProps) {
+  const showDirect = includesChoices(readout);
+  const showGeneration = includesJson(readout);
+
   return (
-    <div className="grid gap-5 lg:grid-cols-2">
-      <DirectLane direct={direct} running={running} />
-      <GenerationLane stream={stream} result={result} running={running} />
+    <div className={cn("grid gap-5", showDirect && showGeneration && "lg:grid-cols-2")}>
+      {showDirect ? <DirectLane direct={direct} running={running} /> : null}
+      {showGeneration ? <GenerationLane stream={stream} result={result} running={running} /> : null}
     </div>
   );
 }

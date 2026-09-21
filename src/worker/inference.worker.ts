@@ -6,13 +6,19 @@
 
 import { MIN_OPTIONS, MAX_OPTIONS } from "@/lib/labels";
 import { getModel, isModelId, type ModelId } from "@/lib/models";
+import { includesChoices, includesJson, type ReadoutMode } from "@/lib/readout";
 import {
   runDirectReadout,
   runGeneration,
   isAsyncIterable,
   type CompletionClient,
 } from "@/lib/inference/engine";
-import type { CompareInput, WorkerEvent, WorkerRequest } from "@/lib/inference/protocol";
+import type {
+  CompareInput,
+  GenerationResult,
+  WorkerEvent,
+  WorkerRequest,
+} from "@/lib/inference/protocol";
 
 import { createWllama, importWllama, WLLAMA_WASM_URL, type WllamaInstance } from "./wllama";
 
@@ -114,7 +120,7 @@ async function load(requestedModelId: string, useLocal: boolean): Promise<void> 
   }
 }
 
-async function compare(data: CompareInput): Promise<void> {
+async function compare(data: CompareInput, readout: ReadoutMode): Promise<void> {
   if (!engine) throw new Error("Load the model before running a comparison.");
   const model = modelId ? getModel(modelId) : undefined;
   if (!model) throw new Error("Load the model before running a comparison.");
@@ -127,20 +133,27 @@ async function compare(data: CompareInput): Promise<void> {
   }
 
   const client: CompletionClient = engine;
-  const direct = await runDirectReadout(client, data, model);
-  send({ type: "direct", ...direct });
+  let generation: GenerationResult | null = null;
 
-  send({ type: "generation-start" });
-  const generation = await runGeneration(client, data, (update) =>
-    send({ type: "generation-update", ...update }),
-  );
-  send({ type: "complete", ...generation, directMs: direct.totalMs });
+  if (includesChoices(readout)) {
+    const direct = await runDirectReadout(client, data, model);
+    send({ type: "direct", ...direct });
+  }
+
+  if (includesJson(readout)) {
+    send({ type: "generation-start" });
+    generation = await runGeneration(client, data, (update) =>
+      send({ type: "generation-update", ...update }),
+    );
+  }
+
+  send({ type: "complete", generation });
 }
 
 async function handleRequest(request: WorkerRequest): Promise<void> {
   try {
     if (request.type === "load") await load(request.modelId, request.useLocal);
-    if (request.type === "compare") await compare(request.data);
+    if (request.type === "compare") await compare(request.data, request.readout);
   } catch (error) {
     console.error(error);
     send({ type: "error", message: error instanceof Error ? error.message : String(error) });

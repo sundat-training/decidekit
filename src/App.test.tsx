@@ -390,18 +390,19 @@ describe("switching tiers", () => {
 
     await emit(worker, {
       type: "complete",
-      directMs: 900,
-      generationMs: 5400,
-      inputTokens: 120,
-      ttftMs: 300,
-      generatedTokens: 30,
-      generatedText:
-        '{"A: Account access support": 0.7, "B: Billing support": 0.2, "C: Close as resolved": 0.1}',
-      valid: true,
-      choice: "A",
-      choiceDescription: "Account access support",
-      validationError: "",
-      strippedFence: false,
+      generation: {
+        generationMs: 5400,
+        inputTokens: 120,
+        ttftMs: 300,
+        generatedTokens: 30,
+        generatedText:
+          '{"A: Account access support": 0.7, "B: Billing support": 0.2, "C: Close as resolved": 0.1}',
+        valid: true,
+        choice: "A",
+        choiceDescription: "Account access support",
+        validationError: "",
+        strippedFence: false,
+      },
     });
     await waitForTextMatching(page.getByTestId("generation-verdict"), /valid JSON/);
 
@@ -481,6 +482,7 @@ describe("comparison run", () => {
         question: DEFAULT_DECISION.question,
         options: DEFAULT_DECISION.options,
       },
+      readout: "both",
     });
 
     await emit(worker, {
@@ -510,18 +512,19 @@ describe("comparison run", () => {
 
     await emit(worker, {
       type: "complete",
-      directMs: 900,
-      generationMs: 5400,
-      inputTokens: 120,
-      ttftMs: 300,
-      generatedTokens: 30,
-      generatedText:
-        '{"A: Account access support": 0.7, "B: Billing support": 0.2, "C: Close as resolved": 0.1}',
-      valid: true,
-      choice: "A",
-      choiceDescription: "Account access support",
-      validationError: "",
-      strippedFence: false,
+      generation: {
+        generationMs: 5400,
+        inputTokens: 120,
+        ttftMs: 300,
+        generatedTokens: 30,
+        generatedText:
+          '{"A: Account access support": 0.7, "B: Billing support": 0.2, "C: Close as resolved": 0.1}',
+        valid: true,
+        choice: "A",
+        choiceDescription: "Account access support",
+        validationError: "",
+        strippedFence: false,
+      },
     });
 
     await waitForTextMatching(page.getByTestId("generation-verdict"), /valid JSON · top choice A/);
@@ -536,17 +539,18 @@ describe("comparison run", () => {
     await page.getByTestId("run").click();
     await emit(worker, {
       type: "complete",
-      directMs: 900,
-      generationMs: 1200,
-      inputTokens: 120,
-      ttftMs: null,
-      generatedTokens: 0,
-      generatedText: "",
-      valid: false,
-      choice: null,
-      choiceDescription: null,
-      validationError: "expected one JSON object",
-      strippedFence: false,
+      generation: {
+        generationMs: 1200,
+        inputTokens: 120,
+        ttftMs: null,
+        generatedTokens: 0,
+        generatedText: "",
+        valid: false,
+        choice: null,
+        choiceDescription: null,
+        validationError: "expected one JSON object",
+        strippedFence: false,
+      },
     });
 
     await waitForText(
@@ -562,18 +566,19 @@ describe("comparison run", () => {
     await page.getByTestId("run").click();
     await emit(worker, {
       type: "complete",
-      directMs: 900,
-      generationMs: 2600,
-      inputTokens: 120,
-      ttftMs: 300,
-      generatedTokens: 40,
-      generatedText:
-        '```json\n{"A: Account access support": 0.5, "B: Billing support": 0.4, "C: Close as resolved": 0.1}\n```',
-      valid: true,
-      choice: "A",
-      choiceDescription: "Account access support",
-      validationError: "",
-      strippedFence: true,
+      generation: {
+        generationMs: 2600,
+        inputTokens: 120,
+        ttftMs: 300,
+        generatedTokens: 40,
+        generatedText:
+          '```json\n{"A: Account access support": 0.5, "B: Billing support": 0.4, "C: Close as resolved": 0.1}\n```',
+        valid: true,
+        choice: "A",
+        choiceDescription: "Account access support",
+        validationError: "",
+        strippedFence: true,
+      },
     });
 
     await waitForText(
@@ -597,6 +602,96 @@ describe("comparison run", () => {
       /did not return valid option logits/,
     );
     await waitForDisabled(page.getByTestId("run"), false);
+  });
+});
+
+describe("readout selection", () => {
+  const OPTIONS = [
+    { label: "A", description: "Account access support", probability: 0.7, logit: -0.1 },
+    { label: "B", description: "Billing support", probability: 0.2, logit: -1.5 },
+    { label: "C", description: "Close as resolved", probability: 0.1, logit: -2.1 },
+  ];
+
+  it("computes and shows only the choices when that mode is picked", async () => {
+    const worker = await setup();
+    await loadDefaultModel(worker);
+
+    await page.getByRole("radio", { name: "Choices only" }).click();
+    await waitForText(page.getByTestId("run"), "run the choices");
+
+    await page.getByTestId("run").click();
+    expect(worker.requests.at(-1)).toEqual({
+      type: "compare",
+      data: {
+        state: DEFAULT_DECISION.state,
+        question: DEFAULT_DECISION.question,
+        options: DEFAULT_DECISION.options,
+      },
+      readout: "choices",
+    });
+
+    await emit(worker, {
+      type: "direct",
+      totalMs: 900,
+      inputTokens: 120,
+      readouts: 1,
+      options: OPTIONS,
+    });
+    await emit(worker, { type: "complete", generation: null });
+
+    await waitForTextMatching(page.getByTestId("direct-output"), /Account access support/);
+    // The generation lane is not rendered at all, not merely left empty.
+    await waitForCount(page.getByTestId("generation-output"), 0);
+    await waitForCount(page.getByTestId("generation-verdict"), 0);
+    await waitForCount(page.getByText("waiting for a run"), 0);
+    await waitForText(page.getByTestId("ratio"), "direct · 0.900 s");
+    await waitForDisabled(page.getByTestId("run"), false);
+  });
+
+  it("computes and shows only the generation when that mode is picked", async () => {
+    const worker = await setup();
+    await loadDefaultModel(worker);
+
+    await page.getByRole("radio", { name: "JSON only" }).click();
+    await waitForText(page.getByTestId("run"), "run the json");
+
+    await page.getByTestId("run").click();
+    expect(worker.requests.at(-1)).toMatchObject({ type: "compare", readout: "json" });
+
+    await emit(worker, { type: "generation-start" });
+    await emit(worker, {
+      type: "complete",
+      generation: {
+        generationMs: 2600,
+        inputTokens: 120,
+        ttftMs: 300,
+        generatedTokens: 40,
+        generatedText: '{"A: Account access support": 1}',
+        valid: true,
+        choice: "A",
+        choiceDescription: "Account access support",
+        validationError: "",
+        strippedFence: false,
+      },
+    });
+
+    await waitForCount(page.getByTestId("direct-output"), 0);
+    await waitForTextMatching(page.getByTestId("generation-verdict"), /valid JSON · top choice A/);
+    await waitForText(page.getByTestId("ratio"), "json · 2.600 s");
+    await waitForDisabled(page.getByTestId("run"), false);
+  });
+
+  it("keeps the selected readout when you leave the lab and come back", async () => {
+    await setup();
+
+    await page.getByRole("radio", { name: "JSON only" }).click();
+    await waitForText(page.getByTestId("run"), "run the json");
+
+    await mainNav().getByRole("link", { name: "About" }).click();
+    await waitForTextMatching(page.getByRole("heading", { level: 1 }), /live, local experiment/);
+    await mainNav().getByRole("link", { name: "Lab" }).click();
+
+    await waitForText(page.getByTestId("run"), "run the json");
   });
 });
 
