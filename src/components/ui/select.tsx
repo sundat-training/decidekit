@@ -77,8 +77,12 @@ function SelectContent({
 function SelectItem({
   className,
   children,
+  hint,
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Item>) {
+}: React.ComponentProps<typeof SelectPrimitive.Item> & {
+  /** Trailing marker, kept outside the item text so the trigger stays clean. */
+  hint?: React.ReactNode;
+}) {
   return (
     <SelectPrimitive.Item
       data-slot="select-item"
@@ -96,6 +100,7 @@ function SelectItem({
         </SelectPrimitive.ItemIndicator>
       </span>
       <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
+      {hint ? <span className="ml-auto shrink-0">{hint}</span> : null}
     </SelectPrimitive.Item>
   );
 }

@@ -134,9 +134,10 @@ async function emitWorkerError(worker: FakeWorker, message: string): Promise<voi
   worker.emitWorkerError(message);
 }
 
-/** Every test starts on the lab route with its own router history. */
+/** Every test starts on the lab route with its own router history and no cache record. */
 beforeEach(() => {
   window.history.replaceState(null, "", "/");
+  window.localStorage.clear();
 });
 
 async function setup(probe: WebGPUProbe = READY_PROBE) {
@@ -341,6 +342,29 @@ describe("switching tiers", () => {
     await waitForText(page.getByTestId("load"), "model ready");
     await waitForDisabled(page.getByTestId("load"), true);
     await waitForDisabled(page.getByTestId("run"), false);
+  });
+
+  it("marks a tier as cached once this browser has loaded it", async () => {
+    const worker = await setup();
+
+    await page.getByRole("combobox", { name: "Model" }).click();
+    await waitForCount(page.getByRole("option"), 3);
+    await waitForCount(page.getByTestId("cached-badge"), 0);
+    // Selecting the current tier again closes the list without changing it.
+    await page.getByRole("option", { name: /MiniCPM5 2B/ }).click();
+
+    await loadDefaultModel(worker);
+
+    await page.getByRole("combobox", { name: "Model" }).click();
+    await waitForCount(page.getByRole("option"), 3);
+    await waitForCount(page.getByTestId("cached-badge"), 1);
+    await waitForTextMatching(
+      page.getByRole("option", { name: /MiniCPM5 2B/ }),
+      /desktop default\s*cached/,
+    );
+
+    // The record outlives the page, so a later visit shows the marker too.
+    expect(window.localStorage.getItem("decidekit.loaded-tiers")).toContain("minicpm5-2b");
   });
 
   it("drops the previous readouts when the tier changes", async () => {

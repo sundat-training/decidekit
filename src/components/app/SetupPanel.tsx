@@ -14,6 +14,7 @@ import { ModelQualityTable } from "@/components/app/ModelQualityTable";
 import { PhaseMetrics } from "@/components/app/PhaseMetrics";
 import { SectionHeading } from "@/components/app/SectionHeading";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -43,6 +44,8 @@ export interface SetupPanelProps {
   modelReady: boolean;
   /** The tier whose weights are resident, so the button can offer a switch. */
   loadedModelId: ModelId | null;
+  /** Tiers this browser has loaded before; marked as cached in the list. */
+  cachedTiers: ModelId[];
   selectDisabled: boolean;
   download: DownloadSnapshot;
   loadMs: number | null;
@@ -120,6 +123,7 @@ export function SetupPanel({
   loading,
   modelReady,
   loadedModelId,
+  cachedTiers,
   selectDisabled,
   download,
   loadMs,
@@ -212,7 +216,17 @@ export function SetupPanel({
                 </SelectTrigger>
                 <SelectContent>
                   {MODEL_IDS.map((id) => (
-                    <SelectItem key={id} value={id}>
+                    <SelectItem
+                      key={id}
+                      value={id}
+                      hint={
+                        cachedTiers.includes(id) ? (
+                          <Badge variant="outline" data-testid="cached-badge">
+                            cached
+                          </Badge>
+                        ) : undefined
+                      }
+                    >
                       {MODELS[id].name} · {MODELS[id].selectLabel}
                     </SelectItem>
                   ))}
@@ -242,8 +256,9 @@ export function SetupPanel({
           <PhaseMetrics download={download} loadMs={loadMs} warmupMs={warmupMs} />
 
           <p className="text-xs leading-relaxed text-muted-foreground">
-            {model.size} on first load for the selected tier. Inputs never leave this page. The
-            first load can take several minutes depending on the model, network and GPU.
+            {model.size} on first load for the selected tier. A tier marked cached was loaded in
+            this browser before, so switching to it should not download again. Inputs never leave
+            this page.
           </p>
         </CardContent>
       ) : support.tone === "error" ? (

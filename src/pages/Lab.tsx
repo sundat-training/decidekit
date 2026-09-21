@@ -35,6 +35,7 @@ export function Lab() {
         loading={inference.busy === "load"}
         modelReady={inference.modelReady}
         loadedModelId={inference.loadedModelId}
+        cachedTiers={inference.cachedTiers}
         selectDisabled={inference.busy !== null}
         download={inference.download}
         loadMs={inference.loadMs}

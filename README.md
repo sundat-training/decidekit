@@ -159,6 +159,10 @@ ships rather than in a simulated environment:
 
 - Direct scores are conditional on the displayed label tokens. They are not
   calibrated confidence, so a high value does not mean the decision is correct.
+- The `cached` marker in the model list is a record of the tiers this browser has
+  already loaded, kept in `localStorage`. A page cannot query the HTTP cache, so
+  the marker is a strong hint rather than a live reading: the browser may evict
+  an entry between visits.
 - The reference quality numbers come from native checkpoints, not from these
   quantized GGUF builds.
 - Timings are one machine's wall-clock smoke tests, not portable performance

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useRef } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 
 import { validateDecisionInput, type DecisionInput } from "@/lib/decision";
 import { DownloadTracker, type DownloadSnapshot } from "@/lib/download";
@@ -10,6 +10,7 @@ import type {
   WorkerRequest,
 } from "@/lib/inference/protocol";
 import { isModelId, type ModelId } from "@/lib/models";
+import { readCachedTiers, rememberTier } from "@/lib/tierCache";
 import { probeWebGPU, type WebGPUStatus } from "@/lib/webgpu";
 
 /** The part of `Worker` this hook uses, so tests can inject a stub. */
@@ -187,6 +188,8 @@ export interface InferenceApi extends InferenceState {
   canLoad: boolean;
   /** Both paths need a loaded model and no run in flight. */
   canRun: boolean;
+  /** Tiers this browser has loaded before, so a switch should skip the download. */
+  cachedTiers: ModelId[];
   loadModel: (modelId: ModelId, useLocal: boolean) => void;
   runComparison: (input: DecisionInput) => boolean;
   reportSupport: (text: string, tone: SupportTone) => void;
@@ -198,6 +201,7 @@ const defaultWorkerFactory: WorkerFactory = () =>
 export function useInference(options: UseInferenceOptions = {}): InferenceApi {
   const { createWorker = defaultWorkerFactory, probe = probeWebGPU } = options;
   const [state, dispatch] = useReducer(reducer, initialState);
+  const [cachedTiers, setCachedTiers] = useState<ModelId[]>(readCachedTiers);
 
   const workerRef = useRef<WorkerLike | null>(null);
   const trackerRef = useRef(new DownloadTracker());
@@ -252,6 +256,7 @@ export function useInference(options: UseInferenceOptions = {}): InferenceApi {
           dispatch({ type: "download", snapshot: trackerRef.current.markCached() });
         }
       }
+      if (message.type === "ready") setCachedTiers(rememberTier(message.modelId));
       dispatch({ type: "worker-event", event: message });
     });
     worker.addEventListener("error", (event) => {
@@ -300,6 +305,7 @@ export function useInference(options: UseInferenceOptions = {}): InferenceApi {
     ...state,
     canLoad,
     canRun,
+    cachedTiers,
     loadModel,
     runComparison,
     reportSupport,
