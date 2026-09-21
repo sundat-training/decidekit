@@ -19,15 +19,15 @@ Ported from the SemIf browser lab (formerly OpenJev).
 
 ## Requirements
 
-- Node.js 20+ and npm
+- Node.js 20+ and pnpm (the version is pinned in `package.json`)
 - A WebGPU-capable browser over HTTPS or `localhost`
 - Room for the selected tier on first load: 639 MB, 1.56 GB or 3.01 GB
 
 ## Quick start
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
 Open the printed localhost URL. The page checks WebGPU first and downloads a
@@ -38,18 +38,29 @@ of Hugging Face. Place that file yourself; `public/assets/` is gitignored.
 
 ## Scripts
 
-| Command              | Purpose                                                       |
-| -------------------- | ------------------------------------------------------------- |
-| `npm run dev`        | Vite dev server with the cross-origin isolation headers       |
-| `npm run build`      | Typecheck via project references, then build to `dist/`       |
-| `npm run preview`    | Serve the built `dist/` with the same headers                 |
-| `npm test`           | Vitest in browser mode (headless Chromium through Playwright) |
-| `npm run test:watch` | The same suite in watch mode                                  |
-| `npm run typecheck`  | `tsc -b` across the app, worker and config projects           |
-| `npm run lint`       | oxlint with autofix and unused-directive reporting            |
-| `npm run lint:typed` | oxlint with the type-aware engine (tsgolint)                  |
-| `npm run fmt`        | oxfmt, writing in place                                       |
-| `npm run fmt:check`  | oxfmt in check mode                                           |
+| Command               | Purpose                                                       |
+| --------------------- | ------------------------------------------------------------- |
+| `pnpm run dev`        | Vite dev server with the cross-origin isolation headers       |
+| `pnpm run build`      | Typecheck via project references, then build to `dist/`       |
+| `pnpm run preview`    | Serve the built `dist/` with the same headers                 |
+| `pnpm test`           | Vitest in browser mode (headless Chromium through Playwright) |
+| `pnpm run test:watch` | The same suite in watch mode                                  |
+| `pnpm run typecheck`  | `tsc -b` across the app, worker and config projects           |
+| `pnpm run lint`       | oxlint with autofix and unused-directive reporting            |
+| `pnpm run lint:typed` | oxlint with the type-aware engine (tsgolint)                  |
+| `pnpm run fmt`        | oxfmt, writing in place                                       |
+| `pnpm run fmt:check`  | oxfmt in check mode                                           |
+
+## Package manager
+
+pnpm is the only package manager used here. `package.json` pins it through
+`packageManager` and `pnpm-lock.yaml` is the single lockfile. Two pnpm-owned
+files sit next to it:
+
+- `pnpm-workspace.yaml` records the release-age exceptions pnpm needed to
+  install the current `oxlint` and `oxfmt` versions.
+- Both that file and the lockfile are excluded from `oxfmt`, so the formatter
+  and pnpm never fight over their contents.
 
 ## Linting and formatting
 
@@ -68,11 +79,11 @@ Two rules are deliberately off, both explained in the config:
   `typescript/no-unnecessary-type-assertion` stays on and still catches casts
   that do nothing.
 
-`npm run lint` skips the rules that need type information; `npm run lint:typed`
+`pnpm run lint` skips the rules that need type information; `pnpm run lint:typed`
 adds them:
 
 ```bash
-npm run lint:typed
+pnpm run lint:typed
 ```
 
 ## Architecture
@@ -97,7 +108,7 @@ resolves its own assets relative to its script URL.
 
 ## Deployment
 
-Any static HTTPS host: run `npm run build` and upload `dist/`. No server,
+Any static HTTPS host: run `pnpm run build` and upload `dist/`. No server,
 database, API, telemetry or server-side inference is involved, and there is no
 build step at runtime.
 
@@ -108,7 +119,7 @@ referrer to Hugging Face.
 
 ## Testing
 
-`npm test` runs the suite in a real browser, so DOM behaviour is tested as it
+`pnpm test` runs the suite in a real browser, so DOM behaviour is tested as it
 ships rather than in a simulated environment:
 
 - **Pure logic** — softmax, logit extraction (letter and single-byte tokens),

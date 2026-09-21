@@ -8,5 +8,5 @@
   "trailingComma": "all",
   "arrowParens": "always",
   "endOfLine": "lf",
-  "ignorePatterns": ["public/vendor/**", "package-lock.json", "dist/**"]
+  "ignorePatterns": ["public/vendor/**", "dist/**", "pnpm-lock.yaml", "pnpm-workspace.yaml"]
 }
