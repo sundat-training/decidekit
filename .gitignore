@@ -3,9 +3,23 @@
 opencode.jsonc
 AGENTS.md
 
-# Node / Bun
+# Dependencies
 node_modules/
 *.log
+
+# Build output
+dist/
+dist-ssr/
+
+# Test artifacts
+coverage/
+__screenshots__/
+test-results/
+.vitest/
+playwright-report/
+
+# Local model files served during development
+public/assets/
 
 # OS / editor
 .DS_Store

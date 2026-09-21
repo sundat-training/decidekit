@@ -1,0 +1,166 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@import "@fontsource-variable/newsreader";
+@import "@fontsource-variable/ibm-plex-sans";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "@fontsource/ibm-plex-mono/600.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * A quiet, instrument-panel palette: warm paper, ink text, one restrained blue
+ * for the direct readout and one muted magenta for the generation path.
+ */
+:root {
+  --radius: 0.5rem;
+
+  --background: oklch(0.987 0.004 106);
+  --foreground: oklch(0.235 0.012 264);
+
+  --card: oklch(1 0 0);
+  --card-foreground: var(--foreground);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--foreground);
+
+  --primary: oklch(0.38 0.055 258);
+  --primary-foreground: oklch(0.985 0.004 106);
+  --secondary: oklch(0.955 0.005 264);
+  --secondary-foreground: oklch(0.3 0.012 264);
+  --muted: oklch(0.958 0.004 264);
+  --muted-foreground: oklch(0.52 0.012 264);
+  --accent: oklch(0.95 0.008 258);
+  --accent-foreground: oklch(0.3 0.02 258);
+  --destructive: oklch(0.55 0.17 27);
+  --destructive-foreground: oklch(0.99 0.005 106);
+
+  --border: oklch(0.905 0.006 264);
+  --input: oklch(0.885 0.006 264);
+  --ring: oklch(0.6 0.06 258);
+
+  /* Domain accents: the two readout paths plus status colours. */
+  --direct: oklch(0.52 0.09 258);
+  --generation: oklch(0.53 0.09 322);
+  --success: oklch(0.52 0.1 155);
+  --warning: oklch(0.6 0.13 75);
+}
+
+.dark {
+  --background: oklch(0.19 0.008 264);
+  --foreground: oklch(0.93 0.005 106);
+  --card: oklch(0.225 0.009 264);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.225 0.009 264);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.85 0.04 258);
+  --primary-foreground: oklch(0.19 0.008 264);
+  --secondary: oklch(0.27 0.01 264);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.27 0.01 264);
+  --muted-foreground: oklch(0.7 0.012 264);
+  --accent: oklch(0.29 0.015 258);
+  --accent-foreground: var(--foreground);
+  --destructive: oklch(0.65 0.16 27);
+  --destructive-foreground: oklch(0.19 0.008 264);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.7 0.05 258);
+  --direct: oklch(0.72 0.09 258);
+  --generation: oklch(0.74 0.09 322);
+  --success: oklch(0.72 0.1 155);
+  --warning: oklch(0.78 0.12 75);
+}
+
+@theme inline {
+  --font-display: "Newsreader Variable", ui-serif, Georgia, serif;
+  --font-sans: "IBM Plex Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-direct: var(--direct);
+  --color-generation: var(--generation);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-synthesis-weight: none;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--direct) 22%, transparent);
+  }
+
+  /* Numbers in metrics and option scores line up across rows. */
+  .metric-value {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@utility lab-grid {
+  background-image: radial-gradient(
+    color-mix(in oklab, var(--foreground) 9%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 22px 22px;
+  background-position: -1px -1px;
+}
+
+@keyframes caret-blink {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  50%,
+  95% {
+    opacity: 0.15;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@utility streaming-caret {
+  animation: caret-blink 1.1s steps(1, end) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .streaming-caret {
+    animation: none;
+  }
+}
