@@ -1,5 +1,6 @@
 import {
   Check,
+  ChevronDown,
   CircleAlert,
   CircleCheck,
   Download,
@@ -24,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import type { DownloadSnapshot } from "@/lib/download";
 import { MODELS, MODEL_IDS, type ModelId, type NoticeTone } from "@/lib/models";
+import { cn } from "@/lib/utils";
 
 export interface SetupPanelProps {
   selected: ModelId;
@@ -31,6 +33,9 @@ export interface SetupPanelProps {
   onLoad: () => void;
   /** `1` when this section doubles as the page title. */
   headingLevel?: 1 | 2;
+  /** Whether the setup details are expanded. The model line stays visible either way. */
+  open: boolean;
+  onToggleOpen: () => void;
   webgpuOk: boolean;
   canLoad: boolean;
   loading: boolean;
@@ -60,11 +65,53 @@ const SUPPORT_ICON = {
   error: CircleAlert,
 } as const;
 
+/**
+ * The one-line readout that survives collapsing the panel: which tier is in
+ * play, how large it is, and whether it is loaded. It stays in the section
+ * heading so hiding the details never hides the selected model.
+ */
+function ModelStatus({
+  modelName,
+  modelSize,
+  ready,
+  loading,
+  failed,
+}: {
+  modelName: string;
+  modelSize: string;
+  ready: boolean;
+  loading: boolean;
+  failed: boolean;
+}) {
+  const state = loading
+    ? { label: "loading…", dot: "bg-direct animate-pulse motion-reduce:animate-none" }
+    : ready
+      ? { label: "loaded locally", dot: "bg-success" }
+      : failed
+        ? { label: "load failed", dot: "bg-destructive" }
+        : { label: "not loaded", dot: "bg-muted-foreground/50" };
+
+  return (
+    <p
+      className="flex items-center gap-2 font-mono text-xs whitespace-nowrap"
+      data-testid="current-model"
+    >
+      <span className={cn("size-1.5 shrink-0 rounded-full", state.dot)} aria-hidden="true" />
+      <span className="text-muted-foreground">
+        <span className="font-medium text-foreground">{modelName}</span> · {modelSize} ·{" "}
+        {state.label}
+      </span>
+    </p>
+  );
+}
+
 export function SetupPanel({
   selected,
   onSelect,
   onLoad,
   headingLevel,
+  open,
+  onToggleOpen,
   webgpuOk,
   canLoad,
   loading,
@@ -88,6 +135,13 @@ export function SetupPanel({
         : `load ${model.name}`;
   const LoadIcon = modelReady ? Check : loading ? LoaderCircle : failed ? RotateCcw : Download;
 
+  const supportAlert = (
+    <Alert tone={SUPPORT_TONE[support.tone]} data-testid="support">
+      <SupportIcon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+      <AlertDescription data-testid="support-text">{support.text}</AlertDescription>
+    </Alert>
+  );
+
   return (
     <Card className="gap-0 py-6">
       <SectionHeading
@@ -100,6 +154,32 @@ export function SetupPanel({
         description="Both readout paths share one quantized model. Weights come from Hugging Face and stay in the browser cache."
         actions={
           <>
+            <ModelStatus
+              modelName={model.name}
+              modelSize={model.size}
+              ready={modelReady}
+              loading={loading}
+              failed={failed}
+            />
+            <Button
+              variant="outline"
+              onClick={onToggleOpen}
+              aria-expanded={open}
+              data-testid="setup-toggle"
+            >
+              <ChevronDown
+                className={cn("transition-transform", open && "rotate-180")}
+                aria-hidden="true"
+              />
+              {open ? "Hide setup" : "Show setup"}
+            </Button>
+          </>
+        }
+      />
+
+      {open ? (
+        <CardContent className="flex flex-col gap-4 pt-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="model-select">Model</Label>
               <Select
@@ -123,30 +203,28 @@ export function SetupPanel({
               <LoadIcon className={loading ? "animate-spin" : undefined} aria-hidden="true" />
               {loadLabel}
             </Button>
-          </>
-        }
-      />
+          </div>
 
-      <CardContent className="flex flex-col gap-4 pt-5">
-        <Alert tone={NOTICE_TONE[model.noticeTone]}>
-          <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          <AlertDescription>{model.notice}</AlertDescription>
-        </Alert>
+          <Alert tone={NOTICE_TONE[model.noticeTone]}>
+            <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            <AlertDescription>{model.notice}</AlertDescription>
+          </Alert>
 
-        <ModelQualityTable selected={selected} />
+          <ModelQualityTable selected={selected} />
 
-        <Alert tone={SUPPORT_TONE[support.tone]} data-testid="support">
-          <SupportIcon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          <AlertDescription data-testid="support-text">{support.text}</AlertDescription>
-        </Alert>
+          {supportAlert}
 
-        <PhaseMetrics download={download} loadMs={loadMs} warmupMs={warmupMs} />
+          <PhaseMetrics download={download} loadMs={loadMs} warmupMs={warmupMs} />
 
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          {model.size} on first load for the selected tier. Inputs never leave this page. The first
-          load can take several minutes depending on the model, network and GPU.
-        </p>
-      </CardContent>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            {model.size} on first load for the selected tier. Inputs never leave this page. The
+            first load can take several minutes depending on the model, network and GPU.
+          </p>
+        </CardContent>
+      ) : support.tone === "error" ? (
+        // A failure stays readable while the rest of the setup is hidden.
+        <CardContent className="pt-4">{supportAlert}</CardContent>
+      ) : null}
     </Card>
   );
 }

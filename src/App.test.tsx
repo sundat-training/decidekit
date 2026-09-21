@@ -233,6 +233,55 @@ describe("model setup", () => {
     await emitWorkerError(worker, "Worker crashed");
     await waitForTextMatching(page.getByTestId("support-text"), /Worker failed: Worker crashed/);
   });
+
+  it("hides the setup details but keeps the current model visible", async () => {
+    await setup();
+
+    await waitForTextMatching(
+      page.getByTestId("current-model"),
+      /MiniCPM5 2B · 1\.56 GB · not loaded/,
+    );
+    await waitForCount(page.getByTestId("load"), 1);
+
+    await page.getByTestId("setup-toggle").click();
+
+    await waitForCount(page.getByTestId("load"), 0);
+    await waitForCount(page.getByRole("combobox", { name: "Model" }), 0);
+    await waitForCount(page.getByRole("heading", { level: 1 }), 1);
+    await waitForTextMatching(
+      page.getByTestId("current-model"),
+      /MiniCPM5 2B · 1\.56 GB · not loaded/,
+    );
+
+    await page.getByTestId("setup-toggle").click();
+    await waitForCount(page.getByTestId("load"), 1);
+  });
+
+  it("keeps the loaded model visible in the collapsed panel", async () => {
+    const worker = await setup();
+    await loadDefaultModel(worker);
+
+    await waitForTextMatching(page.getByTestId("current-model"), /loaded locally/);
+
+    await page.getByTestId("setup-toggle").click();
+
+    await waitForCount(page.getByTestId("load"), 0);
+    await waitForTextMatching(page.getByTestId("current-model"), /MiniCPM5 2B · 1\.56 GB · loaded/);
+  });
+
+  it("keeps a load failure readable while the setup is hidden", async () => {
+    const worker = await setup();
+
+    await page.getByTestId("load").click();
+    await emit(worker, { type: "error", message: "No GPU adapter." });
+    await waitForText(page.getByTestId("support-text"), "No GPU adapter.");
+
+    await page.getByTestId("setup-toggle").click();
+
+    await waitForCount(page.getByTestId("load"), 0);
+    await waitForTextMatching(page.getByTestId("current-model"), /load failed/);
+    await waitForText(page.getByTestId("support-text"), "No GPU adapter.");
+  });
 });
 
 describe("decision editing", () => {
@@ -473,5 +522,19 @@ describe("routing", () => {
     await setupAt("/nope");
 
     await waitForTextMatching(page.getByRole("heading", { level: 1 }), /does not exist/);
+  });
+
+  it("keeps the collapsed setup panel when you leave the lab and come back", async () => {
+    await setup();
+
+    await page.getByTestId("setup-toggle").click();
+    await waitForCount(page.getByTestId("load"), 0);
+
+    await mainNav().getByRole("link", { name: "About" }).click();
+    await waitForTextMatching(page.getByRole("heading", { level: 1 }), /live, local experiment/);
+    await mainNav().getByRole("link", { name: "Lab" }).click();
+
+    await waitForCount(page.getByTestId("load"), 0);
+    await waitForTextMatching(page.getByTestId("current-model"), /MiniCPM5 2B/);
   });
 });

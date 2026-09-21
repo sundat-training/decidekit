@@ -29,6 +29,9 @@ export interface LabContextValue {
   run: () => void;
   running: boolean;
   useLocal: boolean;
+  /** Whether the setup details are expanded; kept here so it survives routing. */
+  setupOpen: boolean;
+  toggleSetup: () => void;
 }
 
 const LabContext = createContext<LabContextValue | null>(null);
@@ -45,6 +48,9 @@ export function LabProvider({ children }: { children: ReactNode }) {
   const [question, setQuestion] = useState(DEFAULT_DECISION.question);
   const [options, setOptions] = useState<string[]>(DEFAULT_DECISION.options);
   const [useLocal] = useState(readLocalAssetsFlag);
+  const [setupOpen, setSetupOpen] = useState(true);
+
+  const toggleSetup = useCallback(() => setSetupOpen((current) => !current), []);
 
   const applyPreset = useCallback((preset: DecisionPreset) => {
     setState(preset.state);
@@ -76,8 +82,21 @@ export function LabProvider({ children }: { children: ReactNode }) {
       run,
       running: inference.busy === "run",
       useLocal,
+      setupOpen,
+      toggleSetup,
     }),
-    [inference, modelId, state, question, options, applyPreset, run, useLocal],
+    [
+      inference,
+      modelId,
+      state,
+      question,
+      options,
+      applyPreset,
+      run,
+      useLocal,
+      setupOpen,
+      toggleSetup,
+    ],
   );
 
   return <LabContext.Provider value={value}>{children}</LabContext.Provider>;

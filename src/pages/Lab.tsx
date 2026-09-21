@@ -28,6 +28,8 @@ export function Lab() {
         onSelect={lab.selectModel}
         onLoad={() => inference.loadModel(lab.modelId, lab.useLocal)}
         headingLevel={1}
+        open={lab.setupOpen}
+        onToggleOpen={lab.toggleSetup}
         webgpuOk={inference.webgpuOk}
         canLoad={inference.canLoad}
         loading={inference.busy === "load"}
