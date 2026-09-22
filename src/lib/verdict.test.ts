@@ -1,36 +1,26 @@
 import { describe, expect, it } from "vitest";
 
-import { describeVerdict, VERDICT_IDLE_RATIO } from "@/lib/verdict";
+import { verdictRatio, VERDICT_IDLE_RATIO } from "@/lib/verdict";
 
-describe("verdict line", () => {
+describe("verdict ratio", () => {
   it("compares the two wall times when both ran", () => {
-    const verdict = describeVerdict({ readout: "both", directMs: 900, generationMs: 5400 });
-
-    expect(verdict.label).toBe("measured wall-time ratio");
-    expect(verdict.ratio).toBe("6.00× generation / direct");
+    expect(verdictRatio({ readout: "both", directMs: 900, generationMs: 5400 })).toBe(
+      "6.00× generation / direct",
+    );
   });
 
-  it("reports a single readout as a wall time, not a ratio", () => {
-    expect(describeVerdict({ readout: "choices", directMs: 900, generationMs: 5400 })).toEqual({
-      label: "measured wall time",
-      ratio: "direct · 0.900 s",
-    });
-
-    expect(describeVerdict({ readout: "json", directMs: null, generationMs: 2600 })).toEqual({
-      label: "measured wall time",
-      ratio: "json · 2.600 s",
-    });
+  it("stays idle in both mode until the two times exist", () => {
+    expect(verdictRatio({ readout: "both", directMs: 900, generationMs: null })).toBe(
+      VERDICT_IDLE_RATIO,
+    );
+    expect(verdictRatio({ readout: "both", directMs: null, generationMs: null })).toBe(
+      VERDICT_IDLE_RATIO,
+    );
   });
 
-  it("stays idle until the times it needs exist", () => {
-    expect(describeVerdict({ readout: "both", directMs: 900, generationMs: null }).ratio).toBe(
-      VERDICT_IDLE_RATIO,
-    );
-    expect(describeVerdict({ readout: "choices", directMs: null, generationMs: 5400 }).ratio).toBe(
-      VERDICT_IDLE_RATIO,
-    );
-    expect(describeVerdict({ readout: "json", directMs: 900, generationMs: null }).ratio).toBe(
-      VERDICT_IDLE_RATIO,
-    );
+  it("reports nothing for a single path, which has no counterpart", () => {
+    expect(verdictRatio({ readout: "choices", directMs: 900, generationMs: 5400 })).toBeNull();
+    expect(verdictRatio({ readout: "json", directMs: 900, generationMs: 5400 })).toBeNull();
+    expect(verdictRatio({ readout: "choices", directMs: null, generationMs: null })).toBeNull();
   });
 });

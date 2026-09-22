@@ -1,10 +1,11 @@
 /**
- * The line under the results: what the number is, and what it measured. The
- * interpretation of those numbers lives on the about page, so this stays a
- * label and a value.
+ * The one derived number the lab reports: how much slower the generation is than
+ * the direct readout.
+ *
+ * A single path has nothing to compare, and the lane already shows its own wall
+ * time, so this returns null rather than repeating that value in the bar below.
  */
 
-import { formatSeconds } from "@/lib/format";
 import type { ReadoutMode } from "@/lib/readout";
 
 export interface VerdictInput {
@@ -15,33 +16,11 @@ export interface VerdictInput {
   generationMs: number | null;
 }
 
-export interface Verdict {
-  label: string;
-  ratio: string;
-}
-
 export const VERDICT_IDLE_RATIO = "run it on your GPU";
 
-export function describeVerdict({ readout, directMs, generationMs }: VerdictInput): Verdict {
-  if (readout === "choices") {
-    return {
-      label: "measured wall time",
-      ratio: directMs === null ? VERDICT_IDLE_RATIO : `direct · ${formatSeconds(directMs)}`,
-    };
-  }
-
-  if (readout === "json") {
-    return {
-      label: "measured wall time",
-      ratio: generationMs === null ? VERDICT_IDLE_RATIO : `json · ${formatSeconds(generationMs)}`,
-    };
-  }
-
-  return {
-    label: "measured wall-time ratio",
-    ratio:
-      directMs === null || generationMs === null
-        ? VERDICT_IDLE_RATIO
-        : `${(generationMs / directMs).toFixed(2)}× generation / direct`,
-  };
+/** `6.00× generation / direct`, or null when the mode has nothing to compare. */
+export function verdictRatio({ readout, directMs, generationMs }: VerdictInput): string | null {
+  if (readout !== "both") return null;
+  if (directMs === null || generationMs === null) return VERDICT_IDLE_RATIO;
+  return `${(generationMs / directMs).toFixed(2)}× generation / direct`;
 }

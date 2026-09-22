@@ -662,7 +662,8 @@ describe("readout selection", () => {
     await waitForCount(page.getByTestId("generation-output"), 0);
     await waitForCount(page.getByTestId("generation-verdict"), 0);
     await waitForCount(page.getByText("waiting for a run"), 0);
-    await waitForText(page.getByTestId("ratio"), "direct · 0.900 s");
+    // The lane already shows this wall time, so the bar is not rendered at all.
+    await waitForCount(page.getByTestId("ratio"), 0);
     await waitForDisabled(page.getByTestId("run"), false);
   });
 
@@ -694,7 +695,7 @@ describe("readout selection", () => {
 
     await waitForCount(page.getByTestId("direct-output"), 0);
     await waitForTextMatching(page.getByTestId("generation-verdict"), /valid JSON · top choice A/);
-    await waitForText(page.getByTestId("ratio"), "json · 2.600 s");
+    await waitForCount(page.getByTestId("ratio"), 0);
     await waitForDisabled(page.getByTestId("run"), false);
   });
 

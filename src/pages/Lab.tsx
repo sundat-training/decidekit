@@ -3,14 +3,14 @@ import { SetupPanel } from "@/components/app/SetupPanel";
 import { VerdictBar } from "@/components/app/VerdictBar";
 import { Workbench } from "@/components/app/Workbench";
 import { useLab } from "@/hooks/useLab";
-import { describeVerdict } from "@/lib/verdict";
+import { verdictRatio } from "@/lib/verdict";
 
 export function Lab() {
   const lab = useLab();
   const { inference } = lab;
   const result = inference.result;
 
-  const verdict = describeVerdict({
+  const ratio = verdictRatio({
     readout: lab.readout,
     directMs: inference.direct?.totalMs ?? null,
     generationMs: result?.generationMs ?? null,
@@ -62,7 +62,7 @@ export function Lab() {
         readout={lab.readout}
       />
 
-      <VerdictBar label={verdict.label} ratio={verdict.ratio} />
+      {ratio === null ? null : <VerdictBar ratio={ratio} />}
     </>
   );
 }
