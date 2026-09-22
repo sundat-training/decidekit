@@ -178,8 +178,14 @@ export const CasesResults = memo(function CasesResults({
           <TableHeader>
             <TableRow>
               <TableHead>case</TableHead>
-              {showChoices ? <TableHead>choices</TableHead> : null}
-              {showJson ? <TableHead>json</TableHead> : null}
+              {/* Left-aligned like their cells: `TableHead` right-aligns by
+                  default, which would float these labels over the far edge. */}
+              {showChoices ? (
+                <TableHead className="text-left" data-testid="case-head-choices">
+                  choices
+                </TableHead>
+              ) : null}
+              {showJson ? <TableHead className="text-left">json</TableHead> : null}
               {showRatio ? <TableHead>ratio</TableHead> : null}
               <TableHead>time</TableHead>
             </TableRow>
