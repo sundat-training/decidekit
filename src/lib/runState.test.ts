@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import type { CaseOutcome } from "@/lib/cases";
+import type { Case, CaseOutcome } from "@/lib/cases";
 import type { DirectResult, GenerationResult } from "@/lib/inference/protocol";
-import { initialRunState, runStateReducer, type RunState } from "@/lib/runState";
+import { finishCase, initialRunState, runStateReducer, type RunState } from "@/lib/runState";
 
 const DIRECT: DirectResult = {
   totalMs: 900,
@@ -27,6 +27,14 @@ const GENERATION: GenerationResult = {
 
 function outcome(id: string, generation: GenerationResult | null = null): CaseOutcome {
   return { id, direct: DIRECT, generation };
+}
+
+function decisionCase(id: string): Case {
+  return {
+    id,
+    type: "decision",
+    input: { state: "A state", question: "?", options: ["One", "Two"] },
+  };
 }
 
 /** A batch that has just been opened, so only its first case is in flight. */
@@ -198,5 +206,27 @@ describe("run state", () => {
     });
 
     expect(streaming.stream).toEqual({ text: "{", tokens: 1, ttftMs: 40 });
+  });
+});
+
+describe("closing a case", () => {
+  it("turns the case in flight into its outcome and names the next one", () => {
+    const cases = [decisionCase("first"), decisionCase("second")];
+
+    const step = finishCase({ cases, readout: "choices", index: 0, direct: DIRECT }, GENERATION);
+
+    expect(step.outcome).toEqual({ id: "first", direct: DIRECT, generation: GENERATION });
+    expect(step.next).toBe(cases[1]);
+  });
+
+  it("names no next case after the last one", () => {
+    const step = finishCase(
+      { cases: [decisionCase("only")], readout: "json", index: 0, direct: null },
+      null,
+    );
+
+    // A run that asked for one path has no generation: the outcome says so.
+    expect(step.outcome).toEqual({ id: "only", direct: null, generation: null });
+    expect(step.next).toBeNull();
   });
 });

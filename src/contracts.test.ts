@@ -11,8 +11,10 @@ const modules = import.meta.glob("./**/*.{ts,tsx,css}", {
   eager: true,
 });
 
+// `src/test/` holds doubles rather than shipped code, so the contract does not
+// apply to it.
 const productionSources = Object.entries(modules)
-  .filter(([path]) => !path.includes(".test."))
+  .filter(([path]) => !path.includes(".test.") && !path.startsWith("./test/"))
   .map(([, source]) => source);
 
 const combined = productionSources.join("\n");

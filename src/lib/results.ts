@@ -9,10 +9,8 @@
  */
 
 import type { Case, CaseOutcome } from "@/lib/cases";
-import { maxIndex } from "@/lib/decision";
+import { maxIndex, scoreOptions, type ScoredOption } from "@/lib/decision";
 import { formatSeconds } from "@/lib/format";
-import type { ScoredOption } from "@/lib/inference/protocol";
-import { optionLabels } from "@/lib/labels";
 
 /** A scored distribution split at its winner. */
 export interface Distribution {
@@ -47,13 +45,7 @@ export function choiceScores(outcome: CaseOutcome | undefined): ScoredOption[] {
  * unusable output — where nothing was parsed — yields no scores at all.
  */
 export function generationScores(entry: Case, outcome: CaseOutcome | undefined): ScoredOption[] {
-  const probabilities = outcome?.generation?.probabilities ?? [];
-  const labels = optionLabels(entry.input.options.length);
-  return probabilities.map((probability, index) => ({
-    label: labels[index],
-    description: entry.input.options[index],
-    probability,
-  }));
+  return scoreOptions(entry.input.options, outcome?.generation?.probabilities ?? []);
 }
 
 /** Wall time of one case: every path that ran for it. */
@@ -65,9 +57,18 @@ export function caseDurationMs(outcome: CaseOutcome | undefined): number | null 
   return times.length === 0 ? null : times.reduce((sum, value) => sum + value, 0);
 }
 
-/** Wall time of the whole batch, i.e. of the cases that finished. */
-export function batchDurationMs(outcomes: readonly CaseOutcome[]): number {
-  return outcomes.reduce((sum, outcome) => sum + (caseDurationMs(outcome) ?? 0), 0);
+/**
+ * Wall time of the whole batch, i.e. of the cases that finished, or null while
+ * no case has reported a time — a run that has not started has no total, and
+ * zero would read as a measured one.
+ */
+export function batchDurationMs(outcomes: readonly CaseOutcome[]): number | null {
+  let total: number | null = null;
+  for (const outcome of outcomes) {
+    const ms = caseDurationMs(outcome);
+    if (ms !== null) total = (total ?? 0) + ms;
+  }
+  return total;
 }
 
 /** How one case's time splits between the paths, for a hover detail. */

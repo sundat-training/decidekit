@@ -11,6 +11,7 @@ import {
   normalizeDecisionInput,
   optionBlock,
   readOptionLogprobs,
+  scoreOptions,
   softmax,
   validateDecisionInput,
   validateGeneration,
@@ -296,6 +297,21 @@ describe("decision guard", () => {
     expect(
       validateDecisionInput({ ...INPUT, options: Array.from({ length: 21 }, (_, i) => `o${i}`) }),
     ).toBe("This lab requires 2 to 20 options.");
+  });
+});
+
+describe("option scores", () => {
+  it("pairs every option with the probability it was given", () => {
+    expect(scoreOptions(["Account access support", "Billing support"], [0.7, 0.3])).toEqual([
+      { label: "A", description: "Account access support", probability: 0.7 },
+      { label: "B", description: "Billing support", probability: 0.3 },
+    ]);
+  });
+
+  it("yields nothing when the readout produced no probability", () => {
+    // An unusable generation parses nothing, so the options must not appear
+    // with a missing value.
+    expect(scoreOptions(["One", "Two"], [])).toEqual([]);
   });
 });
 

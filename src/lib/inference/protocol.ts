@@ -1,14 +1,7 @@
-import type { DecisionInput, GenerationVerdict } from "@/lib/decision";
+import type { DecisionInput, GenerationVerdict, ScoredOption } from "@/lib/decision";
 import type { LoaderProgressEvent } from "@/lib/download";
 import type { ModelId } from "@/lib/models";
 import type { ReadoutMode } from "@/lib/readout";
-
-/** One displayed option with the probability a readout gave it. */
-export interface ScoredOption {
-  label: string;
-  description: string;
-  probability: number;
-}
 
 export interface DirectOptionScore extends ScoredOption {
   logit: number;

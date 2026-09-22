@@ -10,7 +10,7 @@
  * `src/lib/inference/`.
  */
 
-import type { CaseOutcome } from "@/lib/cases";
+import type { Case, CaseOutcome } from "@/lib/cases";
 import type { DownloadSnapshot } from "@/lib/download";
 import type {
   DirectResult,
@@ -19,6 +19,7 @@ import type {
   WorkerEvent,
 } from "@/lib/inference/protocol";
 import type { ModelId } from "@/lib/models";
+import type { ReadoutMode } from "@/lib/readout";
 import type { WebGPUStatus } from "@/lib/webgpu";
 
 export type SupportTone = "info" | "ok" | "error";
@@ -48,6 +49,36 @@ export interface RunState {
   result: GenerationResult | null;
   /** The running or last run, one entry per case, or null before the first run. */
   batch: BatchState | null;
+}
+
+/** The list the worker listener is walking through. */
+export interface RunQueue {
+  cases: Case[];
+  readout: ReadoutMode;
+  index: number;
+  /** The direct result of the case in flight, which arrives before `complete`. */
+  direct: DirectResult | null;
+}
+
+/**
+ * Closes the case in flight and names the one that follows.
+ *
+ * The worker is only told about a case once the previous one completed, so the
+ * two never run against the engine at the same time; the caller sends `next`
+ * and keeps the queue as one pure step.
+ */
+export function finishCase(
+  queue: RunQueue,
+  generation: GenerationResult | null,
+): { outcome: CaseOutcome; next: Case | null } {
+  return {
+    outcome: {
+      id: queue.cases[queue.index].id,
+      direct: queue.direct,
+      generation,
+    },
+    next: queue.index + 1 < queue.cases.length ? queue.cases[queue.index + 1] : null,
+  };
 }
 
 export const initialRunState: RunState = {

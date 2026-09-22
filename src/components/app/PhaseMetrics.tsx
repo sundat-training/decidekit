@@ -1,5 +1,5 @@
 import { Progress } from "@/components/ui/progress";
-import { formatSeconds } from "@/lib/format";
+import { formatSecondsOrDash } from "@/lib/format";
 import type { DownloadSnapshot } from "@/lib/download";
 
 export interface PhaseMetricsProps {
@@ -38,7 +38,7 @@ export function PhaseMetrics({ download, loadMs, warmupMs }: PhaseMetricsProps) 
           model load
         </dt>
         <dd className="flex flex-col gap-1.5">
-          <Value value={loadMs === null ? "—" : formatSeconds(loadMs)} testId="load-value" />
+          <Value value={formatSecondsOrDash(loadMs)} testId="load-value" />
           <span className="text-xs leading-relaxed text-muted-foreground">
             download and prepare
           </span>
@@ -49,7 +49,7 @@ export function PhaseMetrics({ download, loadMs, warmupMs }: PhaseMetricsProps) 
           warmup
         </dt>
         <dd className="flex flex-col gap-1.5">
-          <Value value={warmupMs === null ? "—" : formatSeconds(warmupMs)} testId="warmup-value" />
+          <Value value={formatSecondsOrDash(warmupMs)} testId="warmup-value" />
           <span className="text-xs leading-relaxed text-muted-foreground">
             compile passes for both paths
           </span>

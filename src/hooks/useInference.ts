@@ -8,18 +8,20 @@
 
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 
-import type { Case, CaseOutcome } from "@/lib/cases";
+import type { Case } from "@/lib/cases";
 import { validateDecisionInput, type DecisionInput } from "@/lib/decision";
 import { DownloadTracker } from "@/lib/download";
-import type {
-  DirectResult,
-  GenerationResult,
-  WorkerEvent,
-  WorkerRequest,
-} from "@/lib/inference/protocol";
+import type { GenerationResult, WorkerEvent, WorkerRequest } from "@/lib/inference/protocol";
 import { isModelId, type ModelId } from "@/lib/models";
 import type { ReadoutMode } from "@/lib/readout";
-import { initialRunState, runStateReducer, type RunState, type SupportTone } from "@/lib/runState";
+import {
+  finishCase,
+  initialRunState,
+  runStateReducer,
+  type RunQueue,
+  type RunState,
+  type SupportTone,
+} from "@/lib/runState";
 import { readCachedTiers, rememberTier } from "@/lib/tierCache";
 import { probeWebGPU, type WebGPUStatus } from "@/lib/webgpu";
 
@@ -54,15 +56,6 @@ export interface InferenceApi extends RunState {
   /** Drops the previous run's readouts, for when the input itself changes. */
   resetRun: () => void;
   reportSupport: (text: string, tone: SupportTone) => void;
-}
-
-/** The list the worker listener is walking through. */
-interface RunQueue {
-  cases: Case[];
-  readout: ReadoutMode;
-  index: number;
-  /** The direct result of the case in flight, which arrives before `complete`. */
-  direct: DirectResult | null;
 }
 
 const defaultWorkerFactory: WorkerFactory = () =>
@@ -124,24 +117,16 @@ export function useInference(options: UseInferenceOptions = {}): InferenceApi {
       const queue = queueRef.current;
       if (!queue) return;
 
-      const outcome: CaseOutcome = {
-        id: queue.cases[queue.index].id,
-        direct: queue.direct,
-        generation,
-      };
+      const { outcome, next } = finishCase(queue, generation);
       queue.index += 1;
       queue.direct = null;
       dispatch({ type: "case-done", outcome });
 
-      if (queue.index >= queue.cases.length) {
+      if (!next) {
         queueRef.current = null;
         return;
       }
-      workerRef.current?.postMessage({
-        type: "compare",
-        data: queue.cases[queue.index].input,
-        readout: queue.readout,
-      });
+      workerRef.current?.postMessage({ type: "compare", data: next.input, readout: queue.readout });
     };
 
     const worker = createWorkerRef.current();

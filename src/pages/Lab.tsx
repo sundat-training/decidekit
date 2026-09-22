@@ -4,7 +4,7 @@ import { SetupPanel } from "@/components/app/SetupPanel";
 import { VerdictBar } from "@/components/app/VerdictBar";
 import { Workbench } from "@/components/app/Workbench";
 import { useLab } from "@/hooks/useLab";
-import type { CaseOutcome } from "@/lib/cases";
+import { hasCases, type CaseOutcome } from "@/lib/cases";
 import { verdictRatio } from "@/lib/verdict";
 
 /** One stable reference, so a fresh `[]` cannot defeat the table's memo. */
@@ -16,7 +16,7 @@ export function Lab() {
   const result = inference.result;
   // A loaded file supplies the input, so the single-decision readouts (and the
   // ratio bar that belongs to them) give way to one row per case.
-  const fromFile = lab.cases.length > 0;
+  const fromFile = hasCases(lab.cases);
 
   const ratio = verdictRatio({
     readout: lab.readout,

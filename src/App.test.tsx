@@ -3,50 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render } from "vitest-browser-react";
 
 import { App } from "@/App";
-import type { WebGPUProbe, WorkerLike } from "@/hooks/useInference";
-import type { WorkerEvent, WorkerRequest } from "@/lib/inference/protocol";
+import type { WebGPUProbe } from "@/hooks/useInference";
+import type { WorkerEvent } from "@/lib/inference/protocol";
+import { FakeWorker } from "@/test/fakeWorker";
 import { DEFAULT_DECISION } from "@/lib/presets";
 import { createAppRouter } from "@/router";
-
-/** Stands in for the inference worker so the lab runs without a GPU. */
-class FakeWorker {
-  readonly requests: WorkerRequest[] = [];
-  private readonly messageListeners: Array<(event: MessageEvent<WorkerEvent>) => void> = [];
-  private readonly errorListeners: Array<(event: ErrorEvent) => void> = [];
-
-  postMessage(message: WorkerRequest): void {
-    this.requests.push(message);
-  }
-
-  addEventListener(type: string, listener: unknown): void {
-    if (type === "message") {
-      this.messageListeners.push(listener as (event: MessageEvent<WorkerEvent>) => void);
-    }
-    if (type === "error") {
-      this.errorListeners.push(listener as (event: ErrorEvent) => void);
-    }
-  }
-
-  terminate(): void {
-    // no resources to release
-  }
-
-  emit(event: WorkerEvent): void {
-    for (const listener of this.messageListeners) {
-      listener({ data: event } as MessageEvent<WorkerEvent>);
-    }
-  }
-
-  emitWorkerError(message: string): void {
-    for (const listener of this.errorListeners) {
-      listener({ message } as unknown as ErrorEvent);
-    }
-  }
-
-  asWorkerLike(): WorkerLike {
-    return this;
-  }
-}
 
 const READY_PROBE: WebGPUProbe = async () => ({
   ok: true,

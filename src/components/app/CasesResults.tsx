@@ -12,8 +12,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Case, CaseOutcome } from "@/lib/cases";
-import { formatRatio, formatSeconds } from "@/lib/format";
-import type { ScoredOption } from "@/lib/inference/protocol";
+import type { ScoredOption } from "@/lib/decision";
+import { formatRatio, formatSecondsOrDash, NOT_MEASURED } from "@/lib/format";
 import { includesChoices, includesJson, isComparison, type ReadoutMode } from "@/lib/readout";
 import {
   batchDurationMs,
@@ -86,11 +86,16 @@ function Muted({ children }: { children: ReactNode }) {
   return <span className="font-mono text-xs text-muted-foreground">{children}</span>;
 }
 
+/** The placeholder of a cell whose case has not produced a value yet. */
+function Pending({ running }: { running: boolean }) {
+  return <Muted>{running ? "running…" : NOT_MEASURED}</Muted>;
+}
+
 /** Says why the generation produced no distribution, without hiding it. */
 function unusable(outcome: CaseOutcome | undefined, running: boolean) {
-  if (!outcome) return <Muted>{running ? "running…" : "—"}</Muted>;
+  if (!outcome) return <Pending running={running} />;
   const generation = outcome.generation;
-  if (!generation) return <Muted>—</Muted>;
+  if (!generation) return <Muted>{NOT_MEASURED}</Muted>;
   return (
     <span className="flex flex-col gap-0.5">
       <span className="font-mono text-xs text-destructive">unusable</span>
@@ -175,7 +180,7 @@ export const CasesResults = memo(function CasesResults({
                       <Distribution
                         scores={choiceScores(outcome)}
                         tone="direct"
-                        fallback={<Muted>{running ? "running…" : "—"}</Muted>}
+                        fallback={<Pending running={running} />}
                       />
                     </TableCell>
                   ) : null}
@@ -198,7 +203,7 @@ export const CasesResults = memo(function CasesResults({
                       {formatRatio(
                         outcome?.direct?.totalMs ?? null,
                         outcome?.generation?.generationMs ?? null,
-                      ) ?? "—"}
+                      ) ?? NOT_MEASURED}
                     </TableCell>
                   ) : null}
 
@@ -207,7 +212,7 @@ export const CasesResults = memo(function CasesResults({
                     title={durationDetail(outcome)}
                     data-testid={`case-time-${entry.id}`}
                   >
-                    {ms === null ? "—" : formatSeconds(ms)}
+                    {formatSecondsOrDash(ms)}
                   </TableCell>
                 </TableRow>
               );
@@ -231,7 +236,7 @@ export const CasesResults = memo(function CasesResults({
                 className="metric-value py-2.5 font-mono text-xs"
                 data-testid="cases-total-value"
               >
-                {outcomes.length === 0 ? "—" : formatSeconds(totalMs)}
+                {formatSecondsOrDash(totalMs)}
               </TableCell>
             </TableRow>
           </tfoot>

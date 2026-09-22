@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { Case } from "@/lib/cases";
+import { hasCases, type Case } from "@/lib/cases";
 import { pluralize } from "@/lib/format";
 import { PRESETS, type DecisionPreset } from "@/lib/presets";
 import { READOUT_RUN_LABEL, type ReadoutMode } from "@/lib/readout";
@@ -55,7 +55,7 @@ export function Workbench({
   onLoadCaseFile,
   onClearCases,
 }: WorkbenchProps) {
-  const fromFile = cases.length > 0;
+  const fromFile = hasCases(cases);
 
   function handleFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];

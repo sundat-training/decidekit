@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import exampleFile from "../../public/examples/cases.json?raw";
-import { parseCaseFile } from "@/lib/cases";
+import { hasCases, parseCaseFile } from "@/lib/cases";
 
 const INPUT = {
   state: "A password reset succeeded, but logins still fail.",
@@ -14,6 +14,11 @@ function file(cases: unknown[]): string {
 }
 
 describe("case file", () => {
+  it("knows whether a loaded file supplies the input", () => {
+    expect(hasCases([])).toBe(false);
+    expect(hasCases([{ id: "account", type: "decision", input: INPUT }])).toBe(true);
+  });
+
   it("reads a case with an explicit id and type", () => {
     const parsed = parseCaseFile(file([{ id: "account", type: "decision", input: INPUT }]));
 

@@ -3,7 +3,7 @@ import type * as React from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatSeconds, pluralize } from "@/lib/format";
+import { formatSecondsOrDash, formatTokens, NOT_MEASURED, pluralize } from "@/lib/format";
 import type {
   DirectOptionScore,
   DirectResult,
@@ -68,6 +68,9 @@ function OptionBar({ option }: { option: DirectOptionScore }) {
   );
 }
 
+/** A generation that produced no token, which is not the same as "did not run". */
+const NO_TOKEN = "no token";
+
 export interface DirectLaneProps {
   direct: DirectResult | null;
   running: boolean;
@@ -98,9 +101,12 @@ export function DirectLane({ direct, running }: DirectLaneProps) {
           </Placeholder>
         )}
         <dl className="grid grid-cols-3 divide-x divide-border border-t border-border">
-          <Metric term="total" value={direct ? formatSeconds(direct.totalMs) : "—"} />
-          <Metric term="input" value={direct ? `${direct.inputTokens} tok` : "—"} />
-          <Metric term="output" value={direct ? pluralize(direct.readouts, "readout") : "—"} />
+          <Metric term="total" value={formatSecondsOrDash(direct?.totalMs ?? null)} />
+          <Metric term="input" value={formatTokens(direct?.inputTokens ?? null)} />
+          <Metric
+            term="output"
+            value={direct ? pluralize(direct.readouts, "readout") : NOT_MEASURED}
+          />
         </dl>
       </CardContent>
     </Card>
@@ -163,14 +169,20 @@ export function GenerationLane({ stream, result, running }: GenerationLaneProps)
           <Metric
             term="first token"
             value={
-              result ? (result.ttftMs === null ? "no token" : formatSeconds(result.ttftMs)) : "—"
+              // A finished generation without a token is its own fact, not the
+              // same as one that never ran.
+              result
+                ? result.ttftMs === null
+                  ? NO_TOKEN
+                  : formatSecondsOrDash(result.ttftMs)
+                : NOT_MEASURED
             }
           />
-          <Metric term="total" value={result ? formatSeconds(result.generationMs) : "—"} />
-          <Metric term="input" value={result ? `${result.inputTokens} tok` : "—"} />
+          <Metric term="total" value={formatSecondsOrDash(result?.generationMs ?? null)} />
+          <Metric term="input" value={formatTokens(result?.inputTokens ?? null)} />
           <Metric
             term="output"
-            value={result ? `${result.generatedTokens} tok` : stream ? `${stream.tokens} tok` : "—"}
+            value={formatTokens(result?.generatedTokens ?? stream?.tokens ?? null)}
           />
         </dl>
       </CardContent>

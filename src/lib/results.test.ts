@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import type { Case, CaseOutcome } from "@/lib/cases";
-import type { DirectResult, GenerationResult, ScoredOption } from "@/lib/inference/protocol";
+import type { ScoredOption } from "@/lib/decision";
+import type { DirectResult, GenerationResult } from "@/lib/inference/protocol";
 import {
   batchDurationMs,
   caseDurationMs,
@@ -110,9 +111,10 @@ describe("case durations", () => {
   });
 
   it("totals the cases that finished", () => {
-    expect(batchDurationMs([])).toBe(0);
+    expect(batchDurationMs([])).toBeNull();
     expect(batchDurationMs([outcome({ direct: DIRECT }), outcome({ direct: DIRECT })])).toBe(1800);
-    // A case without a result contributes nothing rather than breaking the sum.
+    // A case without a result contributes nothing and cannot invent a zero.
+    expect(batchDurationMs([outcome({}), outcome({})])).toBeNull();
     expect(batchDurationMs([outcome({}), outcome({ direct: DIRECT })])).toBe(900);
   });
 

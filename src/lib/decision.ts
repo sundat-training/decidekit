@@ -53,6 +53,35 @@ export interface GenerationVerdict {
   strippedFence: boolean;
 }
 
+/**
+ * One displayed option with the probability a readout gave it.
+ *
+ * Both paths end up here: the direct readout adds its logit to this shape, the
+ * generation pairs the probabilities it parsed with the option texts.
+ */
+export interface ScoredOption {
+  label: string;
+  description: string;
+  probability: number;
+}
+
+/**
+ * Pairs option texts with the probabilities a readout produced for them, in the
+ * order the options were given. The probability list decides the length, so an
+ * empty readout yields no scores rather than options without a value.
+ */
+export function scoreOptions(
+  options: readonly string[],
+  probabilities: readonly number[],
+): ScoredOption[] {
+  const labels = optionLabels(options.length);
+  return probabilities.map((probability, index) => ({
+    label: labels[index],
+    description: options[index],
+    probability,
+  }));
+}
+
 export const GENERATION_MAX_TOKENS = 512;
 
 export function optionBlock(

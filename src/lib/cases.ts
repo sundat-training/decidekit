@@ -34,6 +34,15 @@ export interface CaseOutcome {
 
 export type CaseFileResult = { ok: true; cases: Case[] } | { ok: false; error: string };
 
+/**
+ * Whether a loaded file supplies the input. One predicate, because three places
+ * depend on it: the run picks its source, the workbench swaps the editor for the
+ * list, and the lab swaps the lanes for the table.
+ */
+export function hasCases(cases: readonly Case[]): boolean {
+  return cases.length > 0;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }

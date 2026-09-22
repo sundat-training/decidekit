@@ -27,14 +27,61 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { DownloadSnapshot } from "@/lib/download";
-import { MODELS, MODEL_IDS, type ModelId, type NoticeTone } from "@/lib/models";
+import { MODELS, MODEL_IDS, type ModelId } from "@/lib/models";
 import { READOUT_HINT, READOUT_LABEL, READOUT_MODES, type ReadoutMode } from "@/lib/readout";
+import type { SupportTone } from "@/lib/runState";
+import {
+  NOTICE_ALERT_TONE,
+  setupView,
+  SUPPORT_ALERT_TONE,
+  type LoadAction,
+  type ModelStatus,
+} from "@/lib/setupPanel";
 import { cn } from "@/lib/utils";
 
 const READOUT_OPTIONS = READOUT_MODES.map((value) => ({
   value,
   label: READOUT_LABEL[value],
 }));
+
+/** The one-line model status: its dot colour and how the state reads. */
+const STATUS: Record<ModelStatus, { label: string; dot: string }> = {
+  loading: { label: "loading…", dot: "bg-direct animate-pulse motion-reduce:animate-none" },
+  ready: { label: "loaded locally", dot: "bg-success" },
+  failed: { label: "load failed", dot: "bg-destructive" },
+  idle: { label: "not loaded", dot: "bg-muted-foreground/50" },
+};
+
+/** The button's icon and wording for what it would do. */
+const ACTION_ICON: Record<LoadAction, typeof Download> = {
+  ready: Check,
+  loading: LoaderCircle,
+  retry: RotateCcw,
+  switch: Download,
+  load: Download,
+};
+
+/** The icon for the support line's tone. */
+const SUPPORT_ICON: Record<SupportTone, typeof Info> = {
+  info: Info,
+  ok: CircleCheck,
+  error: CircleAlert,
+};
+
+function loadLabel(action: LoadAction, modelName: string): string {
+  switch (action) {
+    case "ready":
+      return "model ready";
+    case "loading":
+      return "loading…";
+    case "retry":
+      return `retry ${modelName} load`;
+    case "switch":
+      return `switch to ${modelName}`;
+    default:
+      return `load ${modelName}`;
+  }
+}
 
 export interface SetupPanelProps {
   selected: ModelId;
@@ -61,52 +108,24 @@ export interface SetupPanelProps {
   download: DownloadSnapshot;
   loadMs: number | null;
   warmupMs: number | null;
-  support: { text: string; tone: "info" | "ok" | "error" };
+  support: { text: string; tone: SupportTone };
 }
-
-const NOTICE_TONE: Record<NoticeTone, "info" | "warning" | "destructive"> = {
-  info: "info",
-  caution: "warning",
-  warning: "destructive",
-};
-
-const SUPPORT_TONE = {
-  info: "info",
-  ok: "success",
-  error: "destructive",
-} as const;
-
-const SUPPORT_ICON = {
-  info: Info,
-  ok: CircleCheck,
-  error: CircleAlert,
-} as const;
 
 /**
  * The one-line readout that survives collapsing the panel: which tier is in
  * play, how large it is, and whether it is loaded. It stays in the section
  * heading so hiding the details never hides the selected model.
  */
-function ModelStatus({
+function ModelStatusLine({
   modelName,
   modelSize,
-  ready,
-  loading,
-  failed,
+  status,
 }: {
   modelName: string;
   modelSize: string;
-  ready: boolean;
-  loading: boolean;
-  failed: boolean;
+  status: ModelStatus;
 }) {
-  const state = loading
-    ? { label: "loading…", dot: "bg-direct animate-pulse motion-reduce:animate-none" }
-    : ready
-      ? { label: "loaded locally", dot: "bg-success" }
-      : failed
-        ? { label: "load failed", dot: "bg-destructive" }
-        : { label: "not loaded", dot: "bg-muted-foreground/50" };
+  const state = STATUS[status];
 
   return (
     <p
@@ -144,27 +163,21 @@ export function SetupPanel({
   support,
 }: SetupPanelProps) {
   const model = MODELS[selected];
+  const view = setupView({
+    selected,
+    loadedModelId,
+    modelReady,
+    loading,
+    webgpuOk,
+    supportTone: support.tone,
+  });
+  // The status line reports what is resident, not what the select points at.
+  const shown = MODELS[view.shownModelId];
+  const LoadIcon = ACTION_ICON[view.action];
   const SupportIcon = SUPPORT_ICON[support.tone];
-  const failed = webgpuOk && !modelReady && !loading && support.tone === "error";
-
-  // The status line reports what is resident, not what the select points at, so
-  // a pending switch stays visible next to a control that already moved on.
-  const shown = modelReady && loadedModelId ? MODELS[loadedModelId] : model;
-  const resident = modelReady && loadedModelId === selected;
-
-  const loadLabel = resident
-    ? "model ready"
-    : loading
-      ? "loading…"
-      : failed
-        ? `retry ${model.name} load`
-        : modelReady
-          ? `switch to ${model.name}`
-          : `load ${model.name}`;
-  const LoadIcon = resident ? Check : loading ? LoaderCircle : failed ? RotateCcw : Download;
 
   const supportAlert = (
-    <Alert tone={SUPPORT_TONE[support.tone]} data-testid="support">
+    <Alert tone={SUPPORT_ALERT_TONE[support.tone]} data-testid="support">
       <SupportIcon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
       <AlertDescription data-testid="support-text">{support.text}</AlertDescription>
     </Alert>
@@ -187,13 +200,7 @@ export function SetupPanel({
         }
         eyebrowAction={
           <>
-            <ModelStatus
-              modelName={shown.name}
-              modelSize={shown.size}
-              ready={modelReady}
-              loading={loading}
-              failed={failed}
-            />
+            <ModelStatusLine modelName={shown.name} modelSize={shown.size} status={view.status} />
             <Button
               variant="ghost"
               size="icon"
@@ -248,16 +255,19 @@ export function SetupPanel({
             </div>
             <Button
               onClick={onLoad}
-              disabled={!canLoad || resident}
+              disabled={!canLoad || view.resident}
               className="h-9"
               data-testid="load"
             >
-              <LoadIcon className={loading ? "animate-spin" : undefined} aria-hidden="true" />
-              {loadLabel}
+              <LoadIcon
+                className={view.action === "loading" ? "animate-spin" : undefined}
+                aria-hidden="true"
+              />
+              {loadLabel(view.action, model.name)}
             </Button>
           </div>
 
-          <Alert tone={NOTICE_TONE[model.noticeTone]}>
+          <Alert tone={NOTICE_ALERT_TONE[model.noticeTone]}>
             <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
             <AlertDescription>{model.notice}</AlertDescription>
           </Alert>

@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 
 import { useInference, type InferenceApi } from "@/hooks/useInference";
 import { useInferenceConfig } from "@/hooks/useInferenceConfig";
-import { parseCaseFile, type Case } from "@/lib/cases";
+import { hasCases, parseCaseFile, type Case } from "@/lib/cases";
 import { normalizeDecisionInput } from "@/lib/decision";
 import { DEFAULT_MODEL_ID, type ModelId } from "@/lib/models";
 import { DEFAULT_DECISION, type DecisionPreset } from "@/lib/presets";
@@ -105,7 +105,7 @@ export function LabProvider({ children }: { children: ReactNode }) {
   }, [inference]);
 
   const run = useCallback(() => {
-    if (cases.length > 0) {
+    if (hasCases(cases)) {
       inference.runCases(cases, readout);
       return;
     }

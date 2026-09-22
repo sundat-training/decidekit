@@ -1,43 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderHook } from "vitest-browser-react";
 
-import { useInference, type WorkerLike } from "@/hooks/useInference";
+import { useInference } from "@/hooks/useInference";
 import type { Case } from "@/lib/cases";
-import type { WorkerEvent, WorkerRequest } from "@/lib/inference/protocol";
-
-/** Stands in for the inference worker so the queue can be driven by hand. */
-class FakeWorker {
-  readonly requests: WorkerRequest[] = [];
-  private readonly messageListeners: Array<(event: MessageEvent<WorkerEvent>) => void> = [];
-
-  postMessage(message: WorkerRequest): void {
-    this.requests.push(message);
-  }
-
-  addEventListener(type: string, listener: unknown): void {
-    if (type === "message") {
-      this.messageListeners.push(listener as (event: MessageEvent<WorkerEvent>) => void);
-    }
-  }
-
-  terminate(): void {
-    // no resources to release
-  }
-
-  emit(event: WorkerEvent): void {
-    for (const listener of this.messageListeners) {
-      listener({ data: event } as MessageEvent<WorkerEvent>);
-    }
-  }
-
-  asWorkerLike(): WorkerLike {
-    return this;
-  }
-
-  compares(): WorkerRequest[] {
-    return this.requests.filter((request) => request.type === "compare");
-  }
-}
+import type { WorkerEvent } from "@/lib/inference/protocol";
+import { FakeWorker } from "@/test/fakeWorker";
 
 const READY = async () => ({ ok: true, message: "WebGPU is ready." });
 
