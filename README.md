@@ -77,6 +77,9 @@ because they share one engine, and the results table gives each case a row with
 its top choice, its generation verdict and its wall times. The file is read as
 text in the page; nothing in it is uploaded anywhere.
 
+A ready-to-load example ships with the site at `public/examples/cases.json`
+(served as `/examples/cases.json`), and a test fails if it ever stops parsing.
+
 ## Scripts
 
 | Command               | Purpose                                                       |

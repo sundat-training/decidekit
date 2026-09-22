@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import exampleFile from "../../public/examples/cases.json?raw";
 import { parseCaseFile } from "@/lib/cases";
 
 const INPUT = {
@@ -123,5 +124,25 @@ describe("case file", () => {
     expect(parsed.ok).toBe(false);
     if (parsed.ok) return;
     expect(parsed.error).toBe("cases[1].input: State, question and every option must be nonempty.");
+  });
+
+  /**
+   * The file under `public/examples/` is what a visitor downloads, so it must
+   * keep parsing: the format may not drift away from its own example.
+   */
+  it("parses the example file it ships", () => {
+    const parsed = parseCaseFile(exampleFile);
+
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.cases.map((item) => item.id)).toEqual([
+      "account-support",
+      "email-triage",
+      "ticket-priority",
+      "release-gate",
+    ]);
+    // The example covers both ends of the option bounds and both forms of `type`.
+    expect(parsed.cases.map((item) => item.input.options.length)).toEqual([3, 3, 4, 2]);
+    expect(parsed.cases.every((item) => item.type === "decision")).toBe(true);
   });
 });

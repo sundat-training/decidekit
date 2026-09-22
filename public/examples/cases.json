@@ -1,0 +1,38 @@
+{
+  "cases": [
+    {
+      "id": "account-support",
+      "type": "decision",
+      "input": {
+        "state": "A customer says a password reset succeeded, but every login attempt still returns 'account locked'. Two unlock emails were requested and neither arrived.",
+        "question": "Which queue should handle this request?",
+        "options": ["Account access support", "Billing support", "Close as resolved"]
+      }
+    },
+    {
+      "id": "email-triage",
+      "input": {
+        "state": "An email claims to be from the payroll team and says the recipient's salary payment will be suspended today. It comes from payroll-review@outlook.com and links to a non-company sign-in page asking for a password and verification code.",
+        "question": "How should this email be classified?",
+        "options": ["Legitimate", "Spam", "Phishing"]
+      }
+    },
+    {
+      "id": "ticket-priority",
+      "type": "decision",
+      "input": {
+        "state": "One user reports that an internal dashboard loads slowly during the morning peak. No error is shown and the data is correct.",
+        "question": "What priority should this ticket get?",
+        "options": ["Low", "Normal", "High", "Critical"]
+      }
+    },
+    {
+      "id": "release-gate",
+      "input": {
+        "state": "A refactor touches only comments and formatting. The full test suite passes on the same commit.",
+        "question": "Should this change ship?",
+        "options": ["Ship it", "Hold it back"]
+      }
+    }
+  ]
+}
