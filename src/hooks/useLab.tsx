@@ -51,7 +51,7 @@ export function LabProvider({ children }: { children: ReactNode }) {
   const [modelId, setModelId] = useState<ModelId>(DEFAULT_MODEL_ID);
   const editor = useDecisionEditor();
   const source = useCaseSource(inference.resetRun);
-  const [readout, setReadout] = useState<ReadoutMode>("choices");
+  const [readout, setReadout] = useState<ReadoutMode>("both");
   const [useLocal] = useState(readLocalAssetsFlag);
   const [setupOpen, setSetupOpen] = useState(true);
 

@@ -175,9 +175,9 @@ describe("compatibility check", () => {
     await setup();
 
     await waitForDisabled(page.getByTestId("run"), true);
-    // Choices is the default, so only the direct lane is on screen.
-    await waitForCount(page.getByText("waiting for a run"), 1);
-    expect(page.getByTestId("generation-output").elements()).toHaveLength(0);
+    // Both readouts are the default, so both lanes are on screen and waiting.
+    await waitForCount(page.getByText("waiting for a run"), 2);
+    expect(page.getByTestId("bar-A").elements()).toHaveLength(0);
   });
 });
 
@@ -660,11 +660,61 @@ describe("readout selection", () => {
     { label: "C", description: "Close as resolved", probability: 0.1, logit: -2.1 },
   ];
 
-  it("starts on choices only and runs just that path", async () => {
+  it("starts on both readouts and runs both paths", async () => {
     const worker = await setup();
     await loadDefaultModel(worker);
 
-    await waitForChecked(page.getByRole("radio", { name: "Choices only" }), true);
+    await waitForChecked(page.getByRole("radio", { name: "Both" }), true);
+    await waitForText(page.getByTestId("run"), "run both methods");
+
+    await page.getByTestId("run").click();
+    expect(worker.requests.at(-1)).toEqual({
+      type: "compare",
+      data: {
+        state: DEFAULT_DECISION.state,
+        question: DEFAULT_DECISION.question,
+        options: DEFAULT_DECISION.options,
+      },
+      readout: "both",
+    });
+
+    await emit(worker, {
+      type: "direct",
+      totalMs: 900,
+      inputTokens: 120,
+      readouts: 1,
+      options: OPTIONS,
+    });
+    await emit(worker, { type: "generation-start" });
+    await emit(worker, {
+      type: "complete",
+      generation: {
+        generationMs: 2600,
+        inputTokens: 120,
+        ttftMs: 300,
+        generatedTokens: 40,
+        generatedText: '{"A: Account access support": 1}',
+        valid: true,
+        choice: "A",
+        choiceDescription: "Account access support",
+        probabilities: [1, 0, 0],
+        validationError: "",
+        strippedFence: false,
+      },
+    });
+
+    await waitForTextMatching(page.getByTestId("direct-output"), /Account access support/);
+    await waitForTextMatching(page.getByTestId("generation-verdict"), /valid JSON · top choice A/);
+    // Both paths ran, so their wall times are compared in the bar.
+    await waitForTextMatching(page.getByTestId("ratio"), /generation \/ direct/);
+    await waitForDisabled(page.getByTestId("run"), false);
+  });
+
+  it("computes and shows only the choices when that mode is picked", async () => {
+    const worker = await setup();
+    await loadDefaultModel(worker);
+
+    await pickReadout("Choices only");
     await waitForText(page.getByTestId("run"), "run the choices");
 
     await page.getByTestId("run").click();
@@ -873,6 +923,8 @@ describe("case file", () => {
   it("runs the cases one after the other and fills one row each", async () => {
     const worker = await setup();
     await loadDefaultModel(worker);
+    // This test pins the direct path alone; both paths are the default.
+    await pickReadout("Choices only");
 
     await page.getByTestId("case-file").upload(caseFile("two.json", CASES));
     await waitForText(page.getByTestId("case-count"), "2 cases");
@@ -989,6 +1041,7 @@ describe("case file", () => {
   it("drops the batch readouts when the editor takes over again", async () => {
     const worker = await setup();
     await loadDefaultModel(worker);
+    await pickReadout("Choices only");
 
     await page.getByTestId("case-file").upload(caseFile("one.json", [CASES[0]]));
     await waitForText(page.getByTestId("case-count"), "1 case");

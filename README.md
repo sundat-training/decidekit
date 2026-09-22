@@ -22,9 +22,9 @@ This is a live experiment, not a benchmark. The page shows only timings measured
 in the current tab. Model load and shader warmup are reported separately from
 both paths, and the paths run sequentially so they never contend for one GPU.
 
-Choices only is the default, because one constrained forward pass does not make
-you wait for a generation you may not need. The readouts section of the setup
-area can widen a run to the JSON path or to both. A path that is not selected is
+Both readouts run by default, the way the original lab measured them. The
+readouts section of the setup area can narrow a run to the direct readout or to
+the generation alone. A path that is not selected is
 skipped entirely — not computed and not rendered — so a run costs only what it
 asks for. Restricting to one path also means there is no ratio to report: a
 single readout has nothing to be compared against.
