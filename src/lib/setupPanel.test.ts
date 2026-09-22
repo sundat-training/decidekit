@@ -11,10 +11,9 @@ function input(overrides: Partial<SetupInput> = {}): SetupInput {
   return {
     selected: "minicpm5-2b",
     loadedModelId: null,
+    failedModelId: null,
     modelReady: false,
     loading: false,
-    webgpuOk: true,
-    supportTone: "info",
     ...overrides,
   };
 }
@@ -55,29 +54,22 @@ describe("setup view", () => {
     expect(view.action).toBe("loading");
   });
 
-  it("offers a retry after a failed attempt", () => {
-    const view = setupView(input({ supportTone: "error" }));
+  it("offers a retry to the tier whose own load failed", () => {
+    const view = setupView(input({ failedModelId: "minicpm5-2b" }));
 
     expect(view.failed).toBe(true);
     expect(view.status).toBe("failed");
     expect(view.action).toBe("retry");
   });
 
-  it("calls a missing WebGPU no load failure, because nothing was attempted", () => {
-    const view = setupView(input({ webgpuOk: false, supportTone: "error" }));
+  it("lets a tier the select moved to afterwards start clean", () => {
+    // The failure belongs to the tier that was on trial, not to the select, so
+    // the other tier offers a plain load instead of a retry it does not owe.
+    const view = setupView(input({ selected: "minicpm5-2b", failedModelId: "qwen3.5-4b" }));
 
     expect(view.failed).toBe(false);
+    expect(view.status).toBe("idle");
     expect(view.action).toBe("load");
-  });
-
-  it("keeps a resident tier out of the failure state", () => {
-    // A run can fail while a model is loaded; the load did not.
-    const view = setupView(
-      input({ loadedModelId: "minicpm5-2b", modelReady: true, supportTone: "error" }),
-    );
-
-    expect(view.failed).toBe(false);
-    expect(view.action).toBe("ready");
   });
 
   it("maps every tone to the alert tones the primitive styles", () => {

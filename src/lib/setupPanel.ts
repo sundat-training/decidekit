@@ -38,10 +38,10 @@ export interface SetupInput {
   selected: ModelId;
   /** The tier whose weights are resident, or null while nothing is loaded. */
   loadedModelId: ModelId | null;
+  /** The tier whose last load attempt failed, or null while none did. */
+  failedModelId: ModelId | null;
   modelReady: boolean;
   loading: boolean;
-  webgpuOk: boolean;
-  supportTone: SupportTone;
 }
 
 export interface SetupView {
@@ -55,25 +55,15 @@ export interface SetupView {
   shownModelId: ModelId;
   /** True when the select already points at the tier whose weights are resident. */
   resident: boolean;
-  /** True when the last load attempt ended in an error. */
+  /** True when the selected tier's own load attempt failed. */
   failed: boolean;
 }
 
-/**
- * Whether the last load attempt failed. A WebGPU check that fails while a model
- * is already resident is not a load failure: nothing was attempted.
- */
-function loadFailed({
-  webgpuOk,
-  modelReady,
-  loading,
-  supportTone,
-}: Pick<SetupInput, "webgpuOk" | "modelReady" | "loading" | "supportTone">): boolean {
-  return webgpuOk && !modelReady && !loading && supportTone === "error";
-}
-
 export function setupView(input: SetupInput): SetupView {
-  const failed = loadFailed(input);
+  // Only the tier that failed is a failure. A tier the select moves to
+  // afterwards has simply not been loaded yet, so it offers a plain load rather
+  // than a retry it does not owe.
+  const failed = input.failedModelId === input.selected;
   const resident = input.modelReady && input.loadedModelId === input.selected;
 
   const status: ModelStatus = input.loading

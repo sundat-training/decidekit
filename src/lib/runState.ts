@@ -43,6 +43,10 @@ export interface RunState {
   warmupMs: number | null;
   /** The tier whose weights are resident, or null while nothing is loaded. */
   loadedModelId: ModelId | null;
+  /** The tier whose load is in flight, so a failure can be attributed to it. */
+  loadingModelId: ModelId | null;
+  /** The tier whose last load attempt failed, for the retry it offers. */
+  failedModelId: ModelId | null;
   direct: DirectResult | null;
   stream: GenerationUpdate | null;
   /** The generation result, or null when the run did not ask for one. */
@@ -91,6 +95,8 @@ export const initialRunState: RunState = {
   loadMs: null,
   warmupMs: null,
   loadedModelId: null,
+  loadingModelId: null,
+  failedModelId: null,
   direct: null,
   stream: null,
   result: null,
@@ -100,11 +106,12 @@ export const initialRunState: RunState = {
 export type RunAction =
   | { type: "webgpu-checked"; status: WebGPUStatus }
   | { type: "support"; text: string; tone: SupportTone }
-  | { type: "start-load" }
+  | { type: "start-load"; modelId: ModelId }
   | { type: "start-batch"; ids: string[] }
   | { type: "case-done"; outcome: CaseOutcome }
   | { type: "reset-run" }
   | { type: "download"; snapshot: DownloadSnapshot }
+  | { type: "worker-failed"; message: string }
   | { type: "worker-event"; event: WorkerEvent };
 
 /** Says what finished, in the words the single-decision lab used before. */
@@ -115,6 +122,24 @@ function doneMessage(outcomes: CaseOutcome[]): string {
   return outcomes[0].generation
     ? "Comparison complete. Edit the decision and run again whenever you like."
     : "Direct readout complete. Edit the decision and run again whenever you like.";
+}
+
+/**
+ * Ends whatever was in flight with a message.
+ *
+ * A load that failed is remembered against the tier that was on trial, so the
+ * panel can offer that tier a retry instead of blaming whichever tier the select
+ * points at later. A run that failed leaves the load state as it was.
+ */
+function fail(state: RunState, message: string): RunState {
+  return {
+    ...state,
+    busy: null,
+    failedModelId: state.busy === "load" ? state.loadingModelId : state.failedModelId,
+    loadingModelId: null,
+    batch: state.batch ? { ...state.batch, runningId: null } : null,
+    support: { text: message, tone: "error" },
+  };
 }
 
 function applyWorkerEvent(state: RunState, event: WorkerEvent): RunState {
@@ -130,6 +155,7 @@ function applyWorkerEvent(state: RunState, event: WorkerEvent): RunState {
         ...state,
         modelReady: true,
         busy: null,
+        loadingModelId: null,
         warmupMs: event.warmupMs,
         loadedModelId: event.modelId,
         support: {
@@ -156,12 +182,7 @@ function applyWorkerEvent(state: RunState, event: WorkerEvent): RunState {
       return { ...state, result: event.generation };
 
     case "error":
-      return {
-        ...state,
-        busy: null,
-        batch: state.batch ? { ...state.batch, runningId: null } : null,
-        support: { text: event.message, tone: "error" },
-      };
+      return fail(state, event.message);
 
     default:
       return state;
@@ -187,6 +208,8 @@ export function runStateReducer(state: RunState, action: RunAction): RunState {
         busy: "load",
         // A switch starts by discarding the resident tier: its readouts would
         // otherwise be attributed to the model that replaces it.
+        loadingModelId: action.modelId,
+        failedModelId: null,
         modelReady: false,
         loadedModelId: null,
         loadMs: null,
@@ -244,6 +267,11 @@ export function runStateReducer(state: RunState, action: RunAction): RunState {
 
     case "download":
       return { ...state, download: action.snapshot };
+
+    case "worker-failed":
+      // The worker itself is gone, so nothing it was doing will complete. The
+      // attempt is over either way, which a plain error message would not say.
+      return fail(state, action.message);
 
     case "worker-event":
       return applyWorkerEvent(state, action.event);

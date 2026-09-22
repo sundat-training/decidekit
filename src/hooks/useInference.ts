@@ -156,7 +156,7 @@ export function useInference(options: UseInferenceOptions = {}): InferenceApi {
     });
     worker.addEventListener("error", (event) => {
       queueRef.current = null;
-      dispatch({ type: "support", text: `Worker failed: ${event.message}`, tone: "error" });
+      dispatch({ type: "worker-failed", message: `Worker failed: ${event.message}` });
     });
     workerRef.current = worker;
     return worker;
@@ -171,7 +171,7 @@ export function useInference(options: UseInferenceOptions = {}): InferenceApi {
       queueRef.current = null;
       trackerRef.current.reset();
       dispatch({ type: "download", snapshot: trackerRef.current.current });
-      dispatch({ type: "start-load" });
+      dispatch({ type: "start-load", modelId });
       ensureWorker().postMessage({ type: "load", modelId, useLocal });
     },
     [ensureWorker],

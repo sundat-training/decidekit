@@ -238,6 +238,58 @@ describe("model setup", () => {
     await waitForTextMatching(page.getByTestId("support-text"), /Worker failed: Worker crashed/);
   });
 
+  it("keeps a failed load with the tier it belongs to", async () => {
+    const worker = await setup();
+
+    await page.getByTestId("load").click();
+    await emit(worker, { type: "error", message: "No GPU adapter." });
+
+    await waitForTextMatching(
+      page.getByTestId("current-model"),
+      /MiniCPM5 2B · 1\.56 GB · load failed/,
+    );
+    await waitForText(page.getByTestId("load"), "retry MiniCPM5 2B load");
+
+    // The failure belongs to the tier that was on trial, not to the select.
+    await page.getByRole("combobox", { name: "Model" }).click();
+    await page.getByRole("option", { name: /Qwen3 0\.6B/ }).click();
+    await waitForTextMatching(
+      page.getByTestId("current-model"),
+      /Qwen3 0\.6B · 639 MB · not loaded/,
+    );
+    await waitForText(page.getByTestId("load"), "load Qwen3 0.6B");
+
+    // Selecting the tier that failed offers its retry again.
+    await page.getByRole("combobox", { name: "Model" }).click();
+    await page.getByRole("option", { name: /MiniCPM5 2B/ }).click();
+    await waitForText(page.getByTestId("load"), "retry MiniCPM5 2B load");
+  });
+
+  it("does not turn a failed run into a load retry", async () => {
+    const worker = await setup();
+    await loadDefaultModel(worker);
+
+    await page.getByTestId("run").click();
+    await emit(worker, { type: "error", message: "Engine crashed." });
+
+    await waitForText(page.getByTestId("support-text"), "Engine crashed.");
+    // The model is still resident, so the load did not fail.
+    await waitForTextMatching(page.getByTestId("current-model"), /loaded locally/);
+    await waitForText(page.getByTestId("load"), "model ready");
+  });
+
+  it("stops a dead worker from leaving the panel busy", async () => {
+    const worker = await setup();
+
+    await page.getByTestId("load").click();
+    await waitForText(page.getByTestId("load"), "loading…");
+    await emitWorkerError(worker, "Worker crashed");
+
+    // A stuck load would disable every control for good.
+    await waitForText(page.getByTestId("load"), "retry MiniCPM5 2B load");
+    await waitForDisabled(page.getByTestId("load"), false);
+  });
+
   it("hides the setup details but keeps the current model visible", async () => {
     await setup();
 

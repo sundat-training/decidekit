@@ -35,11 +35,11 @@ export function Lab() {
         headingLevel={1}
         open={lab.setupOpen}
         onToggleOpen={lab.toggleSetup}
-        webgpuOk={inference.webgpuOk}
         canLoad={inference.canLoad}
         loading={inference.busy === "load"}
         modelReady={inference.modelReady}
         loadedModelId={inference.loadedModelId}
+        failedModelId={inference.failedModelId}
         cachedTiers={inference.cachedTiers}
         busy={inference.busy !== null}
         download={inference.download}

@@ -80,11 +80,16 @@ describe("run state", () => {
       batch: { ids: ["first"], outcomes: [outcome("first")], runningId: null },
     };
 
-    const switching = runStateReducer(resident, { type: "start-load" });
+    const switching = runStateReducer(resident, {
+      type: "start-load",
+      modelId: "qwen3.5-4b",
+    });
 
     // The readouts would otherwise be attributed to the model that replaces it.
     expect(switching).toMatchObject({
       busy: "load",
+      loadingModelId: "qwen3.5-4b",
+      failedModelId: null,
       modelReady: false,
       loadedModelId: null,
       loadMs: null,
@@ -94,6 +99,50 @@ describe("run state", () => {
       result: null,
       batch: null,
     });
+  });
+
+  it("blames a failed load on the tier that was on trial", () => {
+    const failed = runStateReducer(
+      runStateReducer(initialRunState, { type: "start-load", modelId: "qwen3.5-4b" }),
+      { type: "worker-event", event: { type: "error", message: "No GPU adapter." } },
+    );
+
+    expect(failed.failedModelId).toBe("qwen3.5-4b");
+    expect(failed.loadingModelId).toBeNull();
+    expect(failed.busy).toBeNull();
+    expect(failed.support).toEqual({ text: "No GPU adapter.", tone: "error" });
+  });
+
+  it("clears the previous failure when a new load starts", () => {
+    const retried = runStateReducer(
+      { ...initialRunState, failedModelId: "qwen3.5-4b" },
+      { type: "start-load", modelId: "minicpm5-2b" },
+    );
+
+    expect(retried.failedModelId).toBeNull();
+    expect(retried.loadingModelId).toBe("minicpm5-2b");
+  });
+
+  it("does not blame a run failure on any load", () => {
+    const failed = runStateReducer(started(["first"]), {
+      type: "worker-event",
+      event: { type: "error", message: "Engine crashed." },
+    });
+
+    expect(failed.failedModelId).toBeNull();
+    expect(failed.busy).toBeNull();
+  });
+
+  it("ends a load attempt when the worker itself dies", () => {
+    const dead = runStateReducer(
+      runStateReducer(initialRunState, { type: "start-load", modelId: "qwen3.5-4b" }),
+      { type: "worker-failed", message: "Worker failed: crashed" },
+    );
+
+    // A plain error message would leave the panel spinning forever.
+    expect(dead.busy).toBeNull();
+    expect(dead.failedModelId).toBe("qwen3.5-4b");
+    expect(dead.support).toEqual({ text: "Worker failed: crashed", tone: "error" });
   });
 
   it("opens a batch on its first case and clears the previous readouts", () => {

@@ -95,12 +95,13 @@ export interface SetupPanelProps {
   /** Whether the setup details are expanded. The model line stays visible either way. */
   open: boolean;
   onToggleOpen: () => void;
-  webgpuOk: boolean;
   canLoad: boolean;
   loading: boolean;
   modelReady: boolean;
   /** The tier whose weights are resident, so the button can offer a switch. */
   loadedModelId: ModelId | null;
+  /** The tier whose last load attempt failed, so only that tier offers a retry. */
+  failedModelId: ModelId | null;
   /** Tiers this browser has loaded before; marked as cached in the list. */
   cachedTiers: ModelId[];
   /** Locks the panel controls while a load or a run is in flight. */
@@ -150,11 +151,11 @@ export function SetupPanel({
   headingLevel,
   open,
   onToggleOpen,
-  webgpuOk,
   canLoad,
   loading,
   modelReady,
   loadedModelId,
+  failedModelId,
   cachedTiers,
   busy,
   download,
@@ -163,14 +164,7 @@ export function SetupPanel({
   support,
 }: SetupPanelProps) {
   const model = MODELS[selected];
-  const view = setupView({
-    selected,
-    loadedModelId,
-    modelReady,
-    loading,
-    webgpuOk,
-    supportTone: support.tone,
-  });
+  const view = setupView({ selected, loadedModelId, failedModelId, modelReady, loading });
   // The status line reports what is resident, not what the select points at.
   const shown = MODELS[view.shownModelId];
   const LoadIcon = ACTION_ICON[view.action];
