@@ -3,6 +3,11 @@
 opencode.jsonc
 AGENTS.md
 
+# Local environment (direnv, work GitHub profile)
+.envrc
+.envrc.*
+!.envrc.example
+
 # Dependencies
 node_modules/
 *.log
