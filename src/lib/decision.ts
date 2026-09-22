@@ -95,7 +95,7 @@ export const SYSTEM_PROMPT =
   "Make the requested decision from the supplied state. Follow the output format exactly.";
 
 /**
- * The second path is asked for the same distribution as the first one, but it
+ * The second path is asked for its own estimate of the same distribution, but it
  * has to write it out token by token. The example keys are deliberately
  * unrelated to the presets so the model cannot anchor on them.
  */

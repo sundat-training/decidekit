@@ -12,8 +12,8 @@ import { DEFAULT_MODEL_ID, MODELS } from "@/lib/models";
 
 const STEPS: Array<{ title: string; body: string }> = [
   {
-    title: "One prompt, both paths",
-    body: "State, question and options are rendered into one user message. The system prompt is identical for both paths, so a difference in the result can only come from the readout — not from the wording.",
+    title: "One decision, two requests",
+    body: "State, question and options are rendered into one user message, and the system prompt is identical for both paths. The user instruction is not: readout A asks for a single option letter, readout B asks the model to write the whole distribution out. Each readout poses its own version of the question, so the two can name different options.",
   },
   {
     title: "Readout A: read the distribution",
@@ -21,7 +21,7 @@ const STEPS: Array<{ title: string; body: string }> = [
   },
   {
     title: "Readout B: generate the distribution",
-    body: "The model writes the same distribution as a JSON object, token by token, capped at 512 tokens. Every chunk is streamed to the page. The finished object must contain exactly the expected keys, values inside [0, 1], and sum to one within 0.02.",
+    body: "The model writes its own estimate of that distribution as a JSON object, token by token, capped at 512 tokens. Every chunk is streamed to the page. The finished object must contain exactly the expected keys, values inside [0, 1], and sum to one within 0.02.",
   },
   {
     title: "Sequential, not parallel",
@@ -41,14 +41,15 @@ export function About() {
         </h1>
         <p className="mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground">
           A local model can read out probabilities for your allowed options without decoding a
-          single token — or write the same distribution as JSON, token by token. This page explains
-          what the lab measures, how each readout works, and what the resulting numbers do not tell
-          you.
+          single token — or write its own estimate of them as JSON, token by token. This page
+          explains what the lab measures, how each readout works, and what the resulting numbers do
+          not tell you.
         </p>
         <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">
           Normally a decision has to be read out of generated text and parsed back into a value. The
-          direct path skips that round trip. The generation path keeps it. Everything else is held
-          constant so the two can be compared honestly.
+          direct path skips that round trip. The generation path keeps it. The model, the state, the
+          question and the options are held constant, so what separates the two answers is how the
+          model was asked for them and how they were read.
         </p>
         <div className="mt-6 flex flex-wrap gap-2">
           <Button asChild size="sm">
@@ -82,10 +83,10 @@ export function About() {
               constrained position. That number exists whether or not the model ever writes it down.
             </p>
             <p className="max-w-prose">
-              The generation readout exists as the control. It is the same model, the same prompt
-              and the same options, asked to write the distribution out — which is what most
-              applications actually do. Running both makes the difference visible instead of
-              assumed.
+              The generation readout is the control: the same model, the same state and the same
+              options, asked to write its distribution out instead of having it read — which is what
+              most applications actually do. It is a different request, so it can name a different
+              option. Running both makes that difference visible instead of assumed.
             </p>
           </CardContent>
         </Card>
@@ -97,7 +98,7 @@ export function About() {
           label="method"
           id="how-title"
           title="How a run works"
-          description="One loaded model, one prompt, two ways of reading it. The order is fixed and the paths never overlap."
+          description="One loaded model, one decision, two ways of asking for and reading the answer. The order is fixed and the paths never overlap."
         />
         <MethodMap modelShort={MODELS[DEFAULT_MODEL_ID].short} optionCount={3} />
         <div className="grid gap-4 sm:grid-cols-2">

@@ -7,9 +7,15 @@ model:
    returns the log-probabilities of the allowed single-token option labels
    (A…T), which are then normalized with a softmax over exactly the displayed
    options. Two to twenty options cost one readout.
-2. **Generation** — the same model writes the same distribution as JSON, token
-   by token, capped at 512 tokens. Every streamed token is shown, and the result
-   is validated: exact keys, values inside `[0, 1]`, sum within `0.02` of one.
+2. **Generation** — the same model writes its own estimate of that distribution as
+   JSON, token by token, capped at 512 tokens. Every streamed token is shown, and
+   the result is validated: exact keys, values inside `[0, 1]`, sum within `0.02`
+   of one.
+
+Both readouts see the same state, question and options, but each asks for the
+answer in its own form — a forced single option letter versus a written
+distribution. The two can therefore name different options, and that difference
+is what the lab exists to show.
 
 This is a live experiment, not a benchmark. The page shows only timings measured
 in the current tab. Model load and shader warmup are reported separately from

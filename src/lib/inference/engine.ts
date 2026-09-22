@@ -107,8 +107,8 @@ export async function runDirectReadout(
 }
 
 /**
- * Path 2: the same distribution, decoded token by token. Every chunk is
- * forwarded so the UI can show partial JSON and time to first token.
+ * Path 2: the model's own estimate of that distribution, decoded token by token.
+ * Every chunk is forwarded so the UI can show partial JSON and time to first token.
  */
 export async function runGeneration(
   client: CompletionClient,
