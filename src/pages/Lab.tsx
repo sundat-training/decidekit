@@ -1,5 +1,3 @@
-import { Link } from "react-router";
-
 import { ResultsSection } from "@/components/app/Results";
 import { SetupPanel } from "@/components/app/SetupPanel";
 import { VerdictBar } from "@/components/app/VerdictBar";
@@ -64,13 +62,6 @@ export function Lab() {
         running={lab.running}
         readout={lab.readout}
       />
-
-      <p className="text-xs leading-relaxed text-muted-foreground">
-        Direct scores are conditional on the displayed options and are not calibrated confidence.{" "}
-        <Link className="underline underline-offset-4 hover:text-foreground" to="/about">
-          How to read these numbers
-        </Link>
-      </p>
 
       <VerdictBar label={verdict.label} ratio={verdict.ratio} note={verdict.note} />
     </>
