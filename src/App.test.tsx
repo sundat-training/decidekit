@@ -415,6 +415,7 @@ describe("switching tiers", () => {
         valid: true,
         choice: "A",
         choiceDescription: "Account access support",
+        probabilities: [0.7, 0.2, 0.1],
         validationError: "",
         strippedFence: false,
       },
@@ -538,6 +539,7 @@ describe("comparison run", () => {
         valid: true,
         choice: "A",
         choiceDescription: "Account access support",
+        probabilities: [0.7, 0.2, 0.1],
         validationError: "",
         strippedFence: false,
       },
@@ -565,6 +567,7 @@ describe("comparison run", () => {
         valid: false,
         choice: null,
         choiceDescription: null,
+        probabilities: [],
         validationError: "expected one JSON object",
         strippedFence: false,
       },
@@ -594,6 +597,7 @@ describe("comparison run", () => {
         valid: true,
         choice: "A",
         choiceDescription: "Account access support",
+        probabilities: [0.5, 0.4, 0.1],
         validationError: "",
         strippedFence: true,
       },
@@ -688,6 +692,7 @@ describe("readout selection", () => {
         valid: true,
         choice: "A",
         choiceDescription: "Account access support",
+        probabilities: [1, 0, 0],
         validationError: "",
         strippedFence: false,
       },
@@ -868,8 +873,16 @@ describe("case file", () => {
     await emit(worker, { type: "complete", generation: null });
 
     await waitForText(page.getByTestId("cases-progress"), "2 / 2");
-    await waitForText(page.getByTestId("case-choices-first"), "A · 0.700");
-    await waitForText(page.getByTestId("case-choices-second"), "B · 0.800");
+    // The winner leads the cell; the other option stays visible but recedes.
+    await waitForTextMatching(
+      page.getByTestId("case-choices-first"),
+      /A.*Account access support.*0\.700/,
+    );
+    await waitForTextMatching(page.getByTestId("case-choices-first"), /B 0\.300/);
+    await waitForTextMatching(page.getByTestId("case-choices-second"), /B.*Phishing.*0\.800/);
+    await waitForText(page.getByTestId("case-time-first"), "0.900 s");
+    await waitForText(page.getByTestId("case-time-second"), "0.900 s");
+    await waitForText(page.getByTestId("cases-total-value"), "1.800 s");
     await waitForDisabled(page.getByTestId("run"), false);
     expect(worker.requests.filter((request) => request.type === "compare")).toHaveLength(2);
   });
@@ -895,12 +908,20 @@ describe("case file", () => {
         valid: true,
         choice: "A",
         choiceDescription: "Account access support",
+        probabilities: [0.7, 0.2, 0.1],
         validationError: "",
         strippedFence: false,
       },
     });
 
-    await waitForText(page.getByTestId("case-json-first"), "A · 5.400 s");
+    // The generation reports its own distribution now, shown like the direct one.
+    await waitForTextMatching(
+      page.getByTestId("case-json-first"),
+      /A.*Account access support.*0\.700/,
+    );
+    await waitForTextMatching(page.getByTestId("case-json-first"), /B 0\.200/);
+    await waitForText(page.getByTestId("case-time-first"), "6.300 s");
+    await waitForText(page.getByTestId("cases-total-value"), "6.300 s");
     await waitForText(page.getByTestId("cases-progress"), "1 / 1");
     await waitForTextMatching(page.getByRole("row", { name: /first/ }), /6\.00×/);
   });

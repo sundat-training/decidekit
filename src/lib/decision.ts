@@ -42,6 +42,12 @@ export interface GenerationVerdict {
   valid: boolean;
   choice: string | null;
   choiceDescription: string | null;
+  /**
+   * The parsed probabilities, aligned with the supplied options, or `[]` when
+   * the output was unusable. Kept so a caller can show the whole distribution
+   * the model wrote, not only the winner.
+   */
+  probabilities: number[];
   validationError: string;
   /** True when the payload had to be unwrapped from a Markdown code fence. */
   strippedFence: boolean;
@@ -207,6 +213,7 @@ export function validateGeneration(text: string, input: DecisionInput): Generati
       valid: true,
       choice: labels[index],
       choiceDescription: input.options[index],
+      probabilities,
       validationError: "",
       strippedFence,
     };
@@ -215,6 +222,7 @@ export function validateGeneration(text: string, input: DecisionInput): Generati
       valid: false,
       choice: null,
       choiceDescription: null,
+      probabilities: [],
       validationError: error instanceof Error ? error.message : "invalid JSON",
       strippedFence,
     };

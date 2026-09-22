@@ -177,6 +177,7 @@ describe("generation validation", () => {
       valid: true,
       choice: "A",
       choiceDescription: "Account access support",
+      probabilities: [0.62, 0.38],
       validationError: "",
       strippedFence: false,
     });
@@ -218,6 +219,8 @@ describe("generation validation", () => {
     expect(verdict.valid).toBe(false);
     expect(verdict.strippedFence).toBe(true);
     expect(verdict.validationError).toBe("expected one probability for every exact option key");
+    // Nothing parsed, so there is no distribution to report.
+    expect(verdict.probabilities).toEqual([]);
   });
 
   it("keeps an unfenced payload unstripped", () => {
