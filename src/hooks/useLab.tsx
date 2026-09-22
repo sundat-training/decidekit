@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 
 import { useInference, type InferenceApi } from "@/hooks/useInference";
 import { useInferenceConfig } from "@/hooks/useInferenceConfig";
-import { DEFAULT_MODEL_ID, MODELS, type ModelId, type ModelTier } from "@/lib/models";
+import { DEFAULT_MODEL_ID, type ModelId } from "@/lib/models";
 import { DEFAULT_DECISION, type DecisionPreset } from "@/lib/presets";
 import type { ReadoutMode } from "@/lib/readout";
 
@@ -17,7 +17,6 @@ function readLocalAssetsFlag(): boolean {
 
 export interface LabContextValue {
   inference: InferenceApi;
-  model: ModelTier;
   modelId: ModelId;
   selectModel: (id: ModelId) => void;
   state: string;
@@ -79,7 +78,6 @@ export function LabProvider({ children }: { children: ReactNode }) {
       inference,
       modelId,
       selectModel: setModelId,
-      model: MODELS[modelId],
       state,
       question,
       options,

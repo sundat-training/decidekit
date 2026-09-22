@@ -1,6 +1,5 @@
 import { Link } from "react-router";
 
-import { MethodMap } from "@/components/app/MethodMap";
 import { ResultsSection } from "@/components/app/Results";
 import { SetupPanel } from "@/components/app/SetupPanel";
 import { VerdictBar } from "@/components/app/VerdictBar";
@@ -10,7 +9,7 @@ import { describeVerdict } from "@/lib/verdict";
 
 export function Lab() {
   const lab = useLab();
-  const { inference, model } = lab;
+  const { inference } = lab;
   const result = inference.result;
 
   const verdict = describeVerdict({
@@ -57,8 +56,6 @@ export function Lab() {
         running={lab.running}
         readout={lab.readout}
       />
-
-      <MethodMap modelShort={model.short} optionCount={lab.options.length} />
 
       <ResultsSection
         direct={inference.direct}
