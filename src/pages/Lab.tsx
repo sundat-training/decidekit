@@ -1,3 +1,4 @@
+import { CasesResults } from "@/components/app/CasesResults";
 import { ResultsSection } from "@/components/app/Results";
 import { SetupPanel } from "@/components/app/SetupPanel";
 import { VerdictBar } from "@/components/app/VerdictBar";
@@ -9,6 +10,9 @@ export function Lab() {
   const lab = useLab();
   const { inference } = lab;
   const result = inference.result;
+  // A loaded file supplies the input, so the single-decision readouts (and the
+  // ratio bar that belongs to them) give way to one row per case.
+  const fromFile = lab.cases.length > 0;
 
   const ratio = verdictRatio({
     readout: lab.readout,
@@ -52,17 +56,34 @@ export function Lab() {
         canRun={inference.canRun}
         running={lab.running}
         readout={lab.readout}
+        cases={lab.cases}
+        caseFileName={lab.caseFileName}
+        caseFileError={lab.caseFileError}
+        runningCaseId={inference.batch?.runningId ?? null}
+        onLoadCaseFile={(file) => {
+          void lab.loadCaseFile(file);
+        }}
+        onClearCases={lab.clearCases}
       />
 
-      <ResultsSection
-        direct={inference.direct}
-        stream={inference.stream}
-        result={result}
-        running={lab.running}
-        readout={lab.readout}
-      />
+      {fromFile ? (
+        <CasesResults
+          cases={lab.cases}
+          outcomes={inference.batch?.outcomes ?? []}
+          runningId={inference.batch?.runningId ?? null}
+          readout={lab.readout}
+        />
+      ) : (
+        <ResultsSection
+          direct={inference.direct}
+          stream={inference.stream}
+          result={result}
+          running={lab.running}
+          readout={lab.readout}
+        />
+      )}
 
-      {ratio === null ? null : <VerdictBar ratio={ratio} />}
+      {!fromFile && ratio !== null ? <VerdictBar ratio={ratio} /> : null}
     </>
   );
 }

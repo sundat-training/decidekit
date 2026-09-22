@@ -43,6 +43,40 @@ model only after you press load.
 On localhost, `?local` makes the worker read `public/assets/<tier>.gguf` instead
 of Hugging Face. Place that file yourself; `public/assets/` is gitignored.
 
+## Cases file
+
+The editor is optional. Instead of typing one decision, the decision section
+also takes a JSON file and runs every case in it, in order, on the same loaded
+model:
+
+```json
+{
+  "cases": [
+    {
+      "id": "account-support",
+      "type": "decision",
+      "input": {
+        "state": "A password reset succeeded, but logins still fail.",
+        "question": "Which queue should handle this request?",
+        "options": ["Account access support", "Billing support", "Close as resolved"]
+      }
+    }
+  ]
+}
+```
+
+`cases` must hold at least one entry. `type` is optional and defaults to
+`decision`, the only type this build runs; `id` is optional and defaults to
+`<type> <position>`. Ids must be unique. Each `input` is checked with the same
+rules as the editor — a nonempty state, question and options, and two to twenty
+options — and a rejected file reports the failing path while leaving the cases
+already loaded in place.
+
+The selected readout applies to every case. Cases run one after the other
+because they share one engine, and the results table gives each case a row with
+its top choice, its generation verdict and its wall times. The file is read as
+text in the page; nothing in it is uploaded anywhere.
+
 ## Scripts
 
 | Command               | Purpose                                                       |
@@ -97,7 +131,7 @@ pnpm run lint:typed
 
 ```
 src/
-  lib/                 pure logic: decision contract, model pins, download tracking, formatting
+  lib/                 pure logic: decision contract, case files, model pins, download tracking, formatting
   lib/inference/       both readout paths against a narrow completion client, plus the worker protocol
   worker/              the Web Worker driver and the vendored wllama loader
   hooks/               useInference (worker lifecycle, state machine), useLab (state above the router)
@@ -116,10 +150,15 @@ bundles it. The vendored engine itself is deliberately not bundled: it is fetche
 at runtime from `/vendor/wllama/index.js` because the prebuilt WASM runtime
 resolves its own assets relative to its script URL.
 
-The lab's worker, loaded model and edited decision live in `useLab`, which is
-mounted **above** the router. Navigating to another route therefore does not
-throw away a model that took minutes to download and compile. Keep it that way:
-state that belongs to a run must not move into a route component.
+The lab's worker, loaded model, edited decision and imported cases live in
+`useLab`, which is mounted **above** the router. Navigating to another route
+therefore does not throw away a model that took minutes to download and
+compile. Keep it that way: state that belongs to a run must not move into a
+route component.
+
+Every run is a list of cases, and the editor produces a list of one. The queue
+lives in `useInference` and posts the next `compare` only after the previous
+`complete`, because the worker does not serialize its messages itself.
 
 ## Deployment
 
@@ -143,7 +182,8 @@ the in-app navigation.
 ships rather than in a simulated environment:
 
 - **Pure logic** — softmax, logit extraction (letter and single-byte tokens),
-  generation validation, option bounds, download aggregation.
+  generation validation, option bounds, case file validation, download
+  aggregation.
 - **Inference paths** — both readouts against a fake completion client with an
   injected clock, including the rejection paths for a stream where a single
   completion was expected and vice versa.

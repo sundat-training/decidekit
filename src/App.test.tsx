@@ -786,3 +786,155 @@ describe("routing", () => {
     await waitForTextMatching(page.getByTestId("current-model"), /MiniCPM5 2B/);
   });
 });
+
+const SECOND_CASE = {
+  id: "second",
+  input: {
+    state: "A payroll email asks for a password.",
+    question: "How should this email be classified?",
+    options: ["Legitimate", "Phishing"],
+  },
+};
+
+const CASES = [{ id: "first", input: DEFAULT_DECISION }, SECOND_CASE];
+
+function caseFile(name: string, cases: unknown[]): File {
+  return new File([JSON.stringify({ cases })], name, { type: "application/json" });
+}
+
+function directResult(label: string, description: string, probability: number) {
+  return {
+    type: "direct" as const,
+    totalMs: 900,
+    inputTokens: 120,
+    readouts: 1,
+    options: [
+      { label, description, probability, logit: -0.1 },
+      {
+        label: label === "A" ? "B" : "A",
+        description: "the rest",
+        probability: 1 - probability,
+        logit: -1.5,
+      },
+    ],
+  };
+}
+
+describe("case file", () => {
+  it("replaces the editor with the loaded cases", async () => {
+    await setup();
+
+    await page.getByTestId("case-file").upload(caseFile("three.json", CASES));
+
+    await waitForText(page.getByTestId("case-file-name"), "three.json");
+    await waitForText(page.getByTestId("case-count"), "2 cases");
+    await waitForCount(page.getByTestId("case-chip"), 2);
+    await waitForText(page.getByTestId("case-chip").first(), "first");
+
+    // The manual fields give way to the list, and the table previews both rows.
+    expect(page.getByLabelText("State").elements()).toHaveLength(0);
+    expect(page.getByLabelText("Option A").elements()).toHaveLength(0);
+    expect(page.getByTestId("preset-email").elements()).toHaveLength(0);
+    expect(page.getByTestId("case-result-row").elements()).toHaveLength(2);
+    await waitForText(page.getByTestId("cases-progress"), "0 / 2");
+  });
+
+  it("runs the cases one after the other and fills one row each", async () => {
+    const worker = await setup();
+    await loadDefaultModel(worker);
+
+    await page.getByTestId("case-file").upload(caseFile("two.json", CASES));
+    await waitForText(page.getByTestId("case-count"), "2 cases");
+
+    await page.getByTestId("run").click();
+    // Only the first case is sent; the next one waits for the current to finish.
+    expect(worker.requests.at(-1)).toEqual({
+      type: "compare",
+      data: CASES[0].input,
+      readout: "choices",
+    });
+    expect(worker.requests.filter((request) => request.type === "compare")).toHaveLength(1);
+
+    await emit(worker, directResult("A", "Account access support", 0.7));
+    await emit(worker, { type: "complete", generation: null });
+
+    expect(worker.requests.at(-1)).toEqual({
+      type: "compare",
+      data: CASES[1].input,
+      readout: "choices",
+    });
+
+    await emit(worker, directResult("B", "Phishing", 0.8));
+    await emit(worker, { type: "complete", generation: null });
+
+    await waitForText(page.getByTestId("cases-progress"), "2 / 2");
+    await waitForText(page.getByTestId("case-choices-first"), "A · 0.700");
+    await waitForText(page.getByTestId("case-choices-second"), "B · 0.800");
+    await waitForDisabled(page.getByTestId("run"), false);
+    expect(worker.requests.filter((request) => request.type === "compare")).toHaveLength(2);
+  });
+
+  it("adds the json column and the ratio when both paths run", async () => {
+    const worker = await setup();
+    await loadDefaultModel(worker);
+    await pickReadout("Both");
+
+    await page.getByTestId("case-file").upload(caseFile("two.json", [CASES[0]]));
+    await waitForText(page.getByTestId("case-count"), "1 case");
+
+    await page.getByTestId("run").click();
+    await emit(worker, directResult("A", "Account access support", 0.7));
+    await emit(worker, {
+      type: "complete",
+      generation: {
+        generationMs: 5400,
+        inputTokens: 120,
+        ttftMs: 300,
+        generatedTokens: 30,
+        generatedText: "{}",
+        valid: true,
+        choice: "A",
+        choiceDescription: "Account access support",
+        validationError: "",
+        strippedFence: false,
+      },
+    });
+
+    await waitForText(page.getByTestId("case-json-first"), "A · 5.400 s");
+    await waitForText(page.getByTestId("cases-progress"), "1 / 1");
+    await waitForTextMatching(page.getByRole("row", { name: /first/ }), /6\.00×/);
+  });
+
+  it("reports a rejected file and keeps the cases that are loaded", async () => {
+    await setup();
+
+    await page.getByTestId("case-file").upload(caseFile("good.json", CASES));
+    await waitForText(page.getByTestId("case-count"), "2 cases");
+
+    await page
+      .getByTestId("case-file")
+      .upload(caseFile("bad.json", [{ type: "ranking", input: DEFAULT_DECISION }]));
+
+    await waitForText(
+      page.getByTestId("case-file-error"),
+      "cases[0].type must be one of: decision.",
+    );
+    await waitForText(page.getByTestId("case-file-name"), "bad.json");
+    // The previously loaded run survives the failed import.
+    await waitForText(page.getByTestId("case-count"), "2 cases");
+  });
+
+  it("returns to the editor when the cases are cleared", async () => {
+    await setup();
+
+    await page.getByTestId("case-file").upload(caseFile("two.json", CASES));
+    await waitForText(page.getByTestId("case-count"), "2 cases");
+
+    await page.getByTestId("clear-cases").click();
+
+    await waitForCount(page.getByTestId("case-chip"), 0);
+    await waitForCount(page.getByTestId("case-result-row"), 0);
+    await waitForCount(page.getByLabelText("State"), 1);
+    await waitForCount(page.getByTestId("preset-email"), 1);
+  });
+});

@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 
 import { useInference, type InferenceApi } from "@/hooks/useInference";
 import { useInferenceConfig } from "@/hooks/useInferenceConfig";
+import { parseCaseFile, type Case } from "@/lib/cases";
 import { DEFAULT_MODEL_ID, type ModelId } from "@/lib/models";
 import { DEFAULT_DECISION, type DecisionPreset } from "@/lib/presets";
 import type { ReadoutMode } from "@/lib/readout";
@@ -29,6 +30,14 @@ export interface LabContextValue {
   /** Which readouts the next run computes and the page displays. */
   readout: ReadoutMode;
   setReadout: (mode: ReadoutMode) => void;
+  /** Cases loaded from a JSON file. Empty means the editor supplies the input. */
+  cases: Case[];
+  /** Name of the last file an import was attempted with, or null. */
+  caseFileName: string | null;
+  /** Why that file was rejected, or null while it parsed. */
+  caseFileError: string | null;
+  loadCaseFile: (file: File) => Promise<void>;
+  clearCases: () => void;
   run: () => void;
   running: boolean;
   useLocal: boolean;
@@ -51,6 +60,9 @@ export function LabProvider({ children }: { children: ReactNode }) {
   const [question, setQuestion] = useState(DEFAULT_DECISION.question);
   const [options, setOptions] = useState<string[]>(DEFAULT_DECISION.options);
   const [readout, setReadout] = useState<ReadoutMode>("choices");
+  const [cases, setCases] = useState<Case[]>([]);
+  const [caseFileName, setCaseFileName] = useState<string | null>(null);
+  const [caseFileError, setCaseFileError] = useState<string | null>(null);
   const [useLocal] = useState(readLocalAssetsFlag);
   const [setupOpen, setSetupOpen] = useState(true);
 
@@ -62,7 +74,33 @@ export function LabProvider({ children }: { children: ReactNode }) {
     setOptions([...preset.options]);
   }, []);
 
+  /**
+   * A rejected file leaves the cases that are already loaded in place, so a
+   * typo in a new file never silently empties a run the visitor prepared.
+   */
+  const loadCaseFile = useCallback(async (file: File) => {
+    const text = await file.text();
+    const parsed = parseCaseFile(text);
+    setCaseFileName(file.name);
+    if (!parsed.ok) {
+      setCaseFileError(parsed.error);
+      return;
+    }
+    setCaseFileError(null);
+    setCases(parsed.cases);
+  }, []);
+
+  const clearCases = useCallback(() => {
+    setCases([]);
+    setCaseFileName(null);
+    setCaseFileError(null);
+  }, []);
+
   const run = useCallback(() => {
+    if (cases.length > 0) {
+      inference.runCases(cases, readout);
+      return;
+    }
     inference.runComparison(
       {
         state: state.trim(),
@@ -71,7 +109,7 @@ export function LabProvider({ children }: { children: ReactNode }) {
       },
       readout,
     );
-  }, [inference, state, question, options, readout]);
+  }, [inference, cases, state, question, options, readout]);
 
   const value = useMemo<LabContextValue>(
     () => ({
@@ -87,6 +125,11 @@ export function LabProvider({ children }: { children: ReactNode }) {
       applyPreset,
       readout,
       setReadout,
+      cases,
+      caseFileName,
+      caseFileError,
+      loadCaseFile,
+      clearCases,
       run,
       running: inference.busy === "run",
       useLocal,
@@ -101,6 +144,11 @@ export function LabProvider({ children }: { children: ReactNode }) {
       options,
       applyPreset,
       readout,
+      cases,
+      caseFileName,
+      caseFileError,
+      loadCaseFile,
+      clearCases,
       run,
       useLocal,
       setupOpen,
