@@ -8,7 +8,6 @@ import {
   buildMessages,
   GENERATION_MAX_TOKENS,
   grammarFor,
-  optionLabels,
   readOptionLogprobs,
   softmax,
   validateGeneration,
@@ -16,6 +15,7 @@ import {
   type ChatMessage,
   type DecisionInput,
 } from "@/lib/decision";
+import { optionLabels } from "@/lib/labels";
 import type { ModelTier } from "@/lib/models";
 
 import type { DirectResult, GenerationResult, GenerationUpdate } from "./protocol";

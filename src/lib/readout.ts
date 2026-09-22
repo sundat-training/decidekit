@@ -37,3 +37,12 @@ export function includesChoices(mode: ReadoutMode): boolean {
 export function includesJson(mode: ReadoutMode): boolean {
   return mode !== "choices";
 }
+
+/**
+ * True when both paths run, i.e. when their wall times can be compared. Derived
+ * from the two predicates above rather than from the mode's name, so a new mode
+ * cannot end up claiming a comparison it does not offer.
+ */
+export function isComparison(mode: ReadoutMode): boolean {
+  return includesChoices(mode) && includesJson(mode);
+}

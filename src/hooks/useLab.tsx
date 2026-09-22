@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 import { useInference, type InferenceApi } from "@/hooks/useInference";
 import { useInferenceConfig } from "@/hooks/useInferenceConfig";
 import { parseCaseFile, type Case } from "@/lib/cases";
+import { normalizeDecisionInput } from "@/lib/decision";
 import { DEFAULT_MODEL_ID, type ModelId } from "@/lib/models";
 import { DEFAULT_DECISION, type DecisionPreset } from "@/lib/presets";
 import type { ReadoutMode } from "@/lib/readout";
@@ -108,14 +109,7 @@ export function LabProvider({ children }: { children: ReactNode }) {
       inference.runCases(cases, readout);
       return;
     }
-    inference.runComparison(
-      {
-        state: state.trim(),
-        question: question.trim(),
-        options: options.map((option) => option.trim()),
-      },
-      readout,
-    );
+    inference.runComparison(normalizeDecisionInput({ state, question, options }), readout);
   }, [inference, cases, state, question, options, readout]);
 
   const value = useMemo<LabContextValue>(

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   includesChoices,
   includesJson,
+  isComparison,
   isReadoutMode,
   READOUT_LABEL,
   READOUT_MODES,
@@ -27,5 +28,11 @@ describe("readout mode", () => {
     expect([includesChoices("choices"), includesJson("choices")]).toEqual([true, false]);
     expect([includesChoices("json"), includesJson("json")]).toEqual([false, true]);
     expect([includesChoices("both"), includesJson("both")]).toEqual([true, true]);
+  });
+
+  it("calls only the mode that runs both paths a comparison", () => {
+    expect(isComparison("both")).toBe(true);
+    expect(isComparison("choices")).toBe(false);
+    expect(isComparison("json")).toBe(false);
   });
 });

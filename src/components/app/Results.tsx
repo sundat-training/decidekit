@@ -10,8 +10,9 @@ import type {
   GenerationResult,
   GenerationUpdate,
 } from "@/lib/inference/protocol";
-import { includesChoices, includesJson, type ReadoutMode } from "@/lib/readout";
+import { includesChoices, includesJson, isComparison, type ReadoutMode } from "@/lib/readout";
 import { cn } from "@/lib/utils";
+import { validationLine } from "@/lib/verdict";
 
 function Placeholder({
   children,
@@ -112,17 +113,6 @@ export interface GenerationLaneProps {
   running: boolean;
 }
 
-function validationLine(result: GenerationResult) {
-  if (result.valid) {
-    const unwrapped = result.strippedFence ? " · code fence stripped" : "";
-    return {
-      tone: "ok" as const,
-      text: `valid JSON${unwrapped} · top choice ${result.choice}`,
-    };
-  }
-  return { tone: "error" as const, text: `unusable output · ${result.validationError}` };
-}
-
 export function GenerationLane({ stream, result, running }: GenerationLaneProps) {
   const text = stream?.text ?? "";
   const verdict = result ? validationLine(result) : null;
@@ -199,7 +189,7 @@ export function ResultsSection({ direct, stream, result, running, readout }: Res
   const showGeneration = includesJson(readout);
 
   return (
-    <div className={cn("grid gap-5", showDirect && showGeneration && "lg:grid-cols-2")}>
+    <div className={cn("grid gap-5", isComparison(readout) && "lg:grid-cols-2")}>
       {showDirect ? <DirectLane direct={direct} running={running} /> : null}
       {showGeneration ? <GenerationLane stream={stream} result={result} running={running} /> : null}
     </div>

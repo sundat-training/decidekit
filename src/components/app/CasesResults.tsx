@@ -12,17 +12,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Case, CaseOutcome } from "@/lib/cases";
-import { maxIndex } from "@/lib/decision";
 import { formatRatio, formatSeconds } from "@/lib/format";
-import { optionLabels } from "@/lib/labels";
-import { includesChoices, includesJson, type ReadoutMode } from "@/lib/readout";
+import type { ScoredOption } from "@/lib/inference/protocol";
+import { includesChoices, includesJson, isComparison, type ReadoutMode } from "@/lib/readout";
+import {
+  batchDurationMs,
+  caseDurationMs,
+  choiceScores,
+  durationDetail,
+  generationScores,
+  splitDistribution,
+} from "@/lib/results";
 import { cn } from "@/lib/utils";
-
-interface ScoredOption {
-  label: string;
-  description: string;
-  probability: number;
-}
 
 export interface CasesResultsProps {
   cases: Case[];
@@ -30,25 +31,6 @@ export interface CasesResultsProps {
   /** The case in flight, or null while nothing runs. */
   runningId: string | null;
   readout: ReadoutMode;
-}
-
-/** The direct path scores every option itself, so its scores come as they are. */
-function directScores(outcome: CaseOutcome | undefined): ScoredOption[] {
-  return outcome?.direct?.options ?? [];
-}
-
-/**
- * The generation writes the same distribution and reports it now, so the table
- * can show its full shape instead of only the winner the validation kept.
- */
-function jsonScores(entry: Case, outcome: CaseOutcome | undefined): ScoredOption[] {
-  const probabilities = outcome?.generation?.probabilities ?? [];
-  const labels = optionLabels(entry.input.options.length);
-  return probabilities.map((probability, index) => ({
-    label: labels[index],
-    description: entry.input.options[index],
-    probability,
-  }));
 }
 
 /**
@@ -65,11 +47,8 @@ function Distribution({
   tone: "direct" | "generation";
   fallback: ReactNode;
 }) {
-  const index = maxIndex(scores.map((option) => option.probability));
-  if (index === -1) return <>{fallback}</>;
-
-  const winner = scores[index];
-  const rest = scores.filter((_, position) => position !== index);
+  const split = splitDistribution(scores);
+  if (!split) return <>{fallback}</>;
 
   return (
     <div className="flex flex-col gap-0.5 whitespace-nowrap">
@@ -80,19 +59,19 @@ function Distribution({
             tone === "direct" ? "text-direct" : "text-generation",
           )}
         >
-          {winner.label}
+          {split.lead.label}
         </span>
-        <span className="max-w-[13rem] truncate text-xs" title={winner.description}>
-          {winner.description}
+        <span className="max-w-[13rem] truncate text-xs" title={split.lead.description}>
+          {split.lead.description}
         </span>
         <span className="metric-value font-mono text-sm font-medium">
-          {winner.probability.toFixed(3)}
+          {split.lead.probability.toFixed(3)}
         </span>
       </span>
 
-      {rest.length > 0 ? (
+      {split.rest.length > 0 ? (
         <span className="flex flex-wrap gap-x-3 font-mono text-[10px] text-muted-foreground">
-          {rest.map((option) => (
+          {split.rest.map((option) => (
             <span key={option.label} title={option.description}>
               {option.label} {option.probability.toFixed(3)}
             </span>
@@ -122,23 +101,6 @@ function unusable(outcome: CaseOutcome | undefined, running: boolean) {
   );
 }
 
-/** Wall time of one case, which is the sum of the paths that ran for it. */
-function caseMs(outcome: CaseOutcome | undefined): number | null {
-  if (!outcome) return null;
-  const times = [outcome.direct?.totalMs, outcome.generation?.generationMs].filter(
-    (value): value is number => value !== undefined,
-  );
-  return times.length === 0 ? null : times.reduce((sum, value) => sum + value, 0);
-}
-
-function timeDetail(outcome: CaseOutcome | undefined): string | undefined {
-  if (!outcome) return undefined;
-  const parts: string[] = [];
-  if (outcome.direct) parts.push(`direct ${formatSeconds(outcome.direct.totalMs)}`);
-  if (outcome.generation) parts.push(`json ${formatSeconds(outcome.generation.generationMs)}`);
-  return parts.length === 0 ? undefined : parts.join(" · ");
-}
-
 /**
  * Memoized: the run state changes on every streamed token, but a table row only
  * changes when a case finishes. The props are replaced rather than mutated, so
@@ -152,9 +114,9 @@ export const CasesResults = memo(function CasesResults({
 }: CasesResultsProps) {
   const showChoices = includesChoices(readout);
   const showJson = includesJson(readout);
-  const showRatio = includesChoices(readout) && includesJson(readout);
+  const showRatio = isComparison(readout);
   const byId = new Map(outcomes.map((outcome) => [outcome.id, outcome]));
-  const totalMs = outcomes.reduce((sum, outcome) => sum + (caseMs(outcome) ?? 0), 0);
+  const totalMs = batchDurationMs(outcomes);
 
   return (
     <Card className="gap-0 py-6">
@@ -195,7 +157,7 @@ export const CasesResults = memo(function CasesResults({
             {cases.map((entry) => {
               const outcome = byId.get(entry.id);
               const running = entry.id === runningId;
-              const ms = caseMs(outcome);
+              const ms = caseDurationMs(outcome);
               return (
                 <TableRow key={entry.id} data-testid="case-result-row">
                   <TableCell
@@ -211,7 +173,7 @@ export const CasesResults = memo(function CasesResults({
                       data-testid={`case-choices-${entry.id}`}
                     >
                       <Distribution
-                        scores={directScores(outcome)}
+                        scores={choiceScores(outcome)}
                         tone="direct"
                         fallback={<Muted>{running ? "running…" : "—"}</Muted>}
                       />
@@ -224,7 +186,7 @@ export const CasesResults = memo(function CasesResults({
                       data-testid={`case-json-${entry.id}`}
                     >
                       <Distribution
-                        scores={jsonScores(entry, outcome)}
+                        scores={generationScores(entry, outcome)}
                         tone="generation"
                         fallback={unusable(outcome, running)}
                       />
@@ -242,7 +204,7 @@ export const CasesResults = memo(function CasesResults({
 
                   <TableCell
                     className="metric-value align-top font-mono text-xs"
-                    title={timeDetail(outcome)}
+                    title={durationDetail(outcome)}
                     data-testid={`case-time-${entry.id}`}
                   >
                     {ms === null ? "—" : formatSeconds(ms)}

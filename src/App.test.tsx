@@ -107,18 +107,6 @@ async function waitForAttribute(locator: Locator, name: string, expected: string
 }
 
 /**
- * A column header must be aligned like its cells. `TableHead` right-aligns by
- * default while the distribution cells do not, which once floated the label
- * over the far edge of a wide column. Comparing computed styles catches that;
- * comparing box edges would not, since text-align moves the text, not the box.
- */
-/**
- * A column header must be aligned like its cells. `TableHead` right-aligns by
- * default while the distribution cells do not, which once floated the label
- * over the far edge of a wide column. Comparing computed styles catches that;
- * comparing box edges would not, since text-align moves the text, not the box.
- */
-/**
  * The distribution columns opt out of `TableHead`'s right-align default, so their
  * label sits over its cells instead of the far edge of a wide column. Asserted as
  * a class rather than a computed style: the suite renders without a stylesheet,

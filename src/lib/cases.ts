@@ -10,7 +10,7 @@
  * before a model is loaded and without a GPU.
  */
 
-import { validateDecisionInput, type DecisionInput } from "./decision";
+import { normalizeDecisionInput, validateDecisionInput, type DecisionInput } from "./decision";
 import type { DirectResult, GenerationResult } from "./inference/protocol";
 
 /** Case types this build can run. */
@@ -51,11 +51,7 @@ function readDecisionInput(input: Record<string, unknown>, where: string): Decis
     return `${where}.options must all be strings.`;
   }
 
-  const decision: DecisionInput = {
-    state: state.trim(),
-    question: question.trim(),
-    options: options.map((option) => option.trim()),
-  };
+  const decision = normalizeDecisionInput({ state, question, options });
   const problem = validateDecisionInput(decision);
   return problem ? `${where}: ${problem}` : decision;
 }

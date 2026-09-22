@@ -1,12 +1,16 @@
-import type { GenerationVerdict } from "@/lib/decision";
+import type { DecisionInput, GenerationVerdict } from "@/lib/decision";
 import type { LoaderProgressEvent } from "@/lib/download";
 import type { ModelId } from "@/lib/models";
 import type { ReadoutMode } from "@/lib/readout";
 
-export interface DirectOptionScore {
+/** One displayed option with the probability a readout gave it. */
+export interface ScoredOption {
   label: string;
   description: string;
   probability: number;
+}
+
+export interface DirectOptionScore extends ScoredOption {
   logit: number;
 }
 
@@ -31,16 +35,10 @@ export interface GenerationUpdate {
   ttftMs: number | null;
 }
 
-export interface CompareInput {
-  state: string;
-  question: string;
-  options: string[];
-}
-
 /** Messages the page sends into the inference worker. */
 export type WorkerRequest =
   | { type: "load"; modelId: ModelId; useLocal: boolean }
-  | { type: "compare"; data: CompareInput; readout: ReadoutMode };
+  | { type: "compare"; data: DecisionInput; readout: ReadoutMode };
 
 /** Messages the inference worker sends back. */
 export type WorkerEvent =

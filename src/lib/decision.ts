@@ -55,12 +55,6 @@ export interface GenerationVerdict {
 
 export const GENERATION_MAX_TOKENS = 512;
 
-/**
- * Options are letters, so one constrained readout scores every choice instead
- * of decoding one token per option.
- */
-export { MAX_OPTIONS, MIN_OPTIONS, optionLabels } from "./labels";
-
 export function optionBlock(
   options: string[],
   labels: string[] = optionLabels(options.length),
@@ -241,4 +235,16 @@ export function validateDecisionInput(input: DecisionInput): string | null {
     return `This lab requires ${MIN_OPTIONS} to ${MAX_OPTIONS} options.`;
   }
   return null;
+}
+
+/**
+ * Trims raw input into the shape a run uses, so an editor value and a parsed
+ * case file agree on what "the same decision" means.
+ */
+export function normalizeDecisionInput(input: DecisionInput): DecisionInput {
+  return {
+    state: input.state.trim(),
+    question: input.question.trim(),
+    options: input.options.map((option) => option.trim()),
+  };
 }

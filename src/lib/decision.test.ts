@@ -8,6 +8,7 @@ import {
   GENERATION_MAX_TOKENS,
   grammarFor,
   maxIndex,
+  normalizeDecisionInput,
   optionBlock,
   readOptionLogprobs,
   softmax,
@@ -295,6 +296,33 @@ describe("decision guard", () => {
     expect(
       validateDecisionInput({ ...INPUT, options: Array.from({ length: 21 }, (_, i) => `o${i}`) }),
     ).toBe("This lab requires 2 to 20 options.");
+  });
+});
+
+describe("decision normalisation", () => {
+  it("trims the state, the question and every option", () => {
+    expect(
+      normalizeDecisionInput({
+        state: "  A customer cannot log in.  ",
+        question: "\tWhich queue? ",
+        options: [" Account access support", "Billing support "],
+      }),
+    ).toEqual({
+      state: "A customer cannot log in.",
+      question: "Which queue?",
+      options: ["Account access support", "Billing support"],
+    });
+  });
+
+  it("keeps the option order and count, which carry the letters", () => {
+    expect(normalizeDecisionInput(INPUT).options).toEqual(INPUT.options);
+  });
+
+  it("is what a run of the editor and a parsed file agree on", () => {
+    // The guard runs on the trimmed shape, so whitespace alone is not content.
+    expect(validateDecisionInput(normalizeDecisionInput({ ...INPUT, state: "   " }))).toBe(
+      "State, question and every option must be nonempty.",
+    );
   });
 });
 

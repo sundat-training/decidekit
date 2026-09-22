@@ -13,12 +13,8 @@ import {
   isAsyncIterable,
   type CompletionClient,
 } from "@/lib/inference/engine";
-import type {
-  CompareInput,
-  GenerationResult,
-  WorkerEvent,
-  WorkerRequest,
-} from "@/lib/inference/protocol";
+import type { DecisionInput } from "@/lib/decision";
+import type { GenerationResult, WorkerEvent, WorkerRequest } from "@/lib/inference/protocol";
 
 import { createWllama, importWllama, WLLAMA_WASM_URL, type WllamaInstance } from "./wllama";
 
@@ -120,7 +116,7 @@ async function load(requestedModelId: string, useLocal: boolean): Promise<void> 
   }
 }
 
-async function compare(data: CompareInput, readout: ReadoutMode): Promise<void> {
+async function compare(data: DecisionInput, readout: ReadoutMode): Promise<void> {
   if (!engine) throw new Error("Load the model before running a comparison.");
   const model = modelId ? getModel(modelId) : undefined;
   if (!model) throw new Error("Load the model before running a comparison.");
