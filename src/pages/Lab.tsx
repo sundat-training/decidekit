@@ -16,7 +16,7 @@ export function Lab() {
   const result = inference.result;
   // A loaded file supplies the input, so the single-decision readouts (and the
   // ratio bar that belongs to them) give way to one row per case.
-  const fromFile = hasCases(lab.cases);
+  const fromFile = hasCases(lab.source.cases);
 
   const ratio = verdictRatio({
     readout: lab.readout,
@@ -49,30 +49,30 @@ export function Lab() {
       />
 
       <Workbench
-        state={lab.state}
-        question={lab.question}
-        options={lab.options}
-        onStateChange={lab.setState}
-        onQuestionChange={lab.setQuestion}
-        onOptionsChange={lab.setOptions}
-        onApplyPreset={lab.applyPreset}
+        state={lab.editor.state}
+        question={lab.editor.question}
+        options={lab.editor.options}
+        onStateChange={lab.editor.setState}
+        onQuestionChange={lab.editor.setQuestion}
+        onOptionsChange={lab.editor.setOptions}
+        onApplyPreset={lab.editor.applyPreset}
         onRun={lab.run}
         canRun={inference.canRun}
         running={lab.running}
         readout={lab.readout}
-        cases={lab.cases}
-        caseFileName={lab.caseFileName}
-        caseFileError={lab.caseFileError}
+        cases={lab.source.cases}
+        caseFileName={lab.source.fileName}
+        caseFileError={lab.source.error}
         runningCaseId={inference.batch?.runningId ?? null}
         onLoadCaseFile={(file) => {
-          void lab.loadCaseFile(file);
+          void lab.source.loadFile(file);
         }}
-        onClearCases={lab.clearCases}
+        onClearCases={lab.source.clear}
       />
 
       {fromFile ? (
         <CasesResults
-          cases={lab.cases}
+          cases={lab.source.cases}
           outcomes={inference.batch?.outcomes ?? NO_OUTCOMES}
           runningId={inference.batch?.runningId ?? null}
           readout={lab.readout}

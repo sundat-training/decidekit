@@ -6,7 +6,7 @@
  * time, and the callbacks the pages call.
  */
 
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 
 import type { Case } from "@/lib/cases";
 import { validateDecisionInput, type DecisionInput } from "@/lib/decision";
@@ -217,14 +217,19 @@ export function useInference(options: UseInferenceOptions = {}): InferenceApi {
   const canLoad = state.webgpuOk && state.busy === null;
   const canRun = state.modelReady && state.busy === null;
 
-  return {
-    ...state,
-    canLoad,
-    canRun,
-    cachedTiers,
-    loadModel,
-    runComparison,
-    runCases,
-    resetRun,
-  };
+  // Stable while nothing the run owns changes, so a re-render of the provider
+  // for an unrelated field does not hand a new API to every consumer.
+  return useMemo(
+    () => ({
+      ...state,
+      canLoad,
+      canRun,
+      cachedTiers,
+      loadModel,
+      runComparison,
+      runCases,
+      resetRun,
+    }),
+    [state, canLoad, canRun, cachedTiers, loadModel, runComparison, runCases, resetRun],
+  );
 }
