@@ -29,7 +29,7 @@ import {
 import type { DownloadSnapshot } from "@/lib/download";
 import { MODELS, MODEL_IDS, type ModelId } from "@/lib/models";
 import { READOUT_HINT, READOUT_LABEL, READOUT_MODES, type ReadoutMode } from "@/lib/readout";
-import type { SupportTone } from "@/lib/runState";
+import { supportText, supportTone, type Support, type SupportTone } from "@/lib/support";
 import {
   NOTICE_ALERT_TONE,
   setupView,
@@ -109,7 +109,8 @@ export interface SetupPanelProps {
   download: DownloadSnapshot;
   loadMs: number | null;
   warmupMs: number | null;
-  support: { text: string; tone: SupportTone };
+  /** What the support line reports, as the fact the run state stores. */
+  support: Support;
 }
 
 /**
@@ -168,12 +169,13 @@ export function SetupPanel({
   // The status line reports what is resident, not what the select points at.
   const shown = MODELS[view.shownModelId];
   const LoadIcon = ACTION_ICON[view.action];
-  const SupportIcon = SUPPORT_ICON[support.tone];
+  const tone = supportTone(support);
+  const SupportIcon = SUPPORT_ICON[tone];
 
   const supportAlert = (
-    <Alert tone={SUPPORT_ALERT_TONE[support.tone]} data-testid="support">
+    <Alert tone={SUPPORT_ALERT_TONE[tone]} data-testid="support">
       <SupportIcon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-      <AlertDescription data-testid="support-text">{support.text}</AlertDescription>
+      <AlertDescription data-testid="support-text">{supportText(support)}</AlertDescription>
     </Alert>
   );
 
@@ -301,7 +303,7 @@ export function SetupPanel({
             </p>
           </div>
         </CardContent>
-      ) : support.tone === "error" ? (
+      ) : tone === "error" ? (
         // A failure stays readable while the rest of the setup is hidden.
         <CardContent className="pt-4">{supportAlert}</CardContent>
       ) : null}

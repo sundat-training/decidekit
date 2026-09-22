@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Case, CaseOutcome } from "@/lib/cases";
 import type { DirectResult, GenerationResult } from "@/lib/inference/protocol";
+import type { ReadoutMode } from "@/lib/readout";
 import { finishCase, initialRunState, runStateReducer, type RunState } from "@/lib/runState";
 
 const DIRECT: DirectResult = {
@@ -38,8 +39,8 @@ function decisionCase(id: string): Case {
 }
 
 /** A batch that has just been opened, so only its first case is in flight. */
-function started(ids: string[]): RunState {
-  return runStateReducer(initialRunState, { type: "start-batch", ids });
+function started(ids: string[], readout: ReadoutMode = "choices"): RunState {
+  return runStateReducer(initialRunState, { type: "start-batch", ids, readout });
 }
 
 /** The same batch after the worker reported both readouts of its first case. */
@@ -56,7 +57,11 @@ describe("run state", () => {
       type: "webgpu-checked",
       status: { ok: true, message: "WebGPU is ready." },
     });
-    expect([ok.webgpuChecked, ok.webgpuOk, ok.support.tone]).toEqual([true, true, "ok"]);
+    expect([ok.webgpuChecked, ok.webgpuOk, ok.support]).toEqual([
+      true,
+      true,
+      { kind: "webgpu", ok: true, message: "WebGPU is ready." },
+    ]);
 
     const failed = runStateReducer(initialRunState, {
       type: "webgpu-checked",
@@ -64,7 +69,7 @@ describe("run state", () => {
     });
     expect([failed.webgpuOk, failed.support]).toEqual([
       false,
-      { text: "No adapter.", tone: "error" },
+      { kind: "webgpu", ok: false, message: "No adapter." },
     ]);
   });
 
@@ -77,7 +82,7 @@ describe("run state", () => {
       warmupMs: 88,
       direct: DIRECT,
       result: GENERATION,
-      batch: { ids: ["first"], outcomes: [outcome("first")], runningId: null },
+      batch: { ids: ["first"], outcomes: [outcome("first")], runningId: null, readout: "choices" },
     };
 
     const switching = runStateReducer(resident, {
@@ -110,7 +115,7 @@ describe("run state", () => {
     expect(failed.failedModelId).toBe("qwen3.5-4b");
     expect(failed.loadingModelId).toBeNull();
     expect(failed.busy).toBeNull();
-    expect(failed.support).toEqual({ text: "No GPU adapter.", tone: "error" });
+    expect(failed.support).toEqual({ kind: "failed", message: "No GPU adapter." });
   });
 
   it("clears the previous failure when a new load starts", () => {
@@ -142,19 +147,28 @@ describe("run state", () => {
     // A plain error message would leave the panel spinning forever.
     expect(dead.busy).toBeNull();
     expect(dead.failedModelId).toBe("qwen3.5-4b");
-    expect(dead.support).toEqual({ text: "Worker failed: crashed", tone: "error" });
+    expect(dead.support).toEqual({ kind: "failed", message: "Worker failed: crashed" });
   });
 
   it("opens a batch on its first case and clears the previous readouts", () => {
     const batch = started(["first", "second"]);
 
     expect(batch.busy).toBe("run");
-    expect(batch.batch).toEqual({ ids: ["first", "second"], outcomes: [], runningId: "first" });
-    expect(batch.support.text).toMatch(/Running 2 cases/);
+    expect(batch.batch).toEqual({
+      ids: ["first", "second"],
+      outcomes: [],
+      runningId: "first",
+      readout: "choices",
+    });
+    expect(batch.support).toEqual({ kind: "running", cases: 2, readout: "choices" });
   });
 
   it("words a single decision as the one-case batch it is", () => {
-    expect(started(["decision"]).support.text).toMatch(/direct readout, then the token-by-token/);
+    expect(started(["decision"], "both").support).toEqual({
+      kind: "running",
+      cases: 1,
+      readout: "both",
+    });
   });
 
   it("advances to the next case and forgets the one that just ended", () => {
@@ -182,25 +196,21 @@ describe("run state", () => {
     // The direct result carries its event tag; the numbers are what matter here.
     expect(advanced.direct).toMatchObject(DIRECT);
     expect(advanced.result).toEqual(GENERATION);
-    expect(advanced.support.tone).toBe("ok");
+    expect(advanced.support).toEqual({ kind: "done", cases: 1, readout: "choices" });
   });
 
-  it("words the finish line for a comparison and for a direct-only run", () => {
-    const compared = runStateReducer(started(["decision"]), {
+  it("records which readout the finished batch computed", () => {
+    const compared = runStateReducer(started(["decision"], "both"), {
       type: "case-done",
       outcome: outcome("decision", GENERATION),
     });
-    expect(compared.support.text).toBe(
-      "Comparison complete. Edit the decision and run again whenever you like.",
-    );
+    expect(compared.support).toEqual({ kind: "done", cases: 1, readout: "both" });
 
     const directOnly = runStateReducer(started(["decision"]), {
       type: "case-done",
       outcome: outcome("decision"),
     });
-    expect(directOnly.support.text).toBe(
-      "Direct readout complete. Edit the decision and run again whenever you like.",
-    );
+    expect(directOnly.support).toEqual({ kind: "done", cases: 1, readout: "choices" });
   });
 
   it("ignores a case that finishes without a batch", () => {
@@ -216,7 +226,7 @@ describe("run state", () => {
     });
 
     expect(failed.busy).toBeNull();
-    expect(failed.support).toEqual({ text: "No GPU adapter.", tone: "error" });
+    expect(failed.support).toEqual({ kind: "failed", message: "No GPU adapter." });
     expect(failed.batch?.runningId).toBeNull();
     // The list stays, so the progress badge still says how far the run got.
     expect(failed.batch?.ids).toEqual(["first", "second"]);
@@ -245,7 +255,7 @@ describe("run state", () => {
     expect(ready.busy).toBeNull();
     expect(ready.loadedModelId).toBe("minicpm5-2b");
     expect(ready.warmupMs).toBe(88);
-    expect(ready.support.text).toBe("Ready. MiniCPM5 2B is loaded locally on WebGPU.");
+    expect(ready.support).toEqual({ kind: "model-ready", modelName: "MiniCPM5 2B" });
   });
 
   it("streams a partial generation into the lane", () => {

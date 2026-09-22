@@ -8,7 +8,7 @@
  */
 
 import type { ModelId, NoticeTone } from "@/lib/models";
-import type { SupportTone } from "@/lib/runState";
+import type { SupportTone } from "@/lib/support";
 
 /** The tones the `Alert` primitive styles. */
 export type AlertTone = "info" | "success" | "warning" | "destructive";

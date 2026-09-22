@@ -112,9 +112,10 @@ describe("case batches", () => {
 
     // A batch names the case; the single-decision run keeps the bare message.
     await vi.waitFor(() =>
-      expect(result.current.support.text).toBe(
-        "broken: State, question and every option must be nonempty.",
-      ),
+      expect(result.current.support).toEqual({
+        kind: "failed",
+        message: "broken: State, question and every option must be nonempty.",
+      }),
     );
     expect(worker.compares()).toHaveLength(0);
     expect(result.current.busy).toBeNull();

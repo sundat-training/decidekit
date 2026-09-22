@@ -20,7 +20,6 @@ import {
   runStateReducer,
   type RunQueue,
   type RunState,
-  type SupportTone,
 } from "@/lib/runState";
 import { readCachedTiers, rememberTier } from "@/lib/tierCache";
 import { probeWebGPU, type WebGPUStatus } from "@/lib/webgpu";
@@ -55,7 +54,6 @@ export interface InferenceApi extends RunState {
   runCases: (cases: Case[], readout: ReadoutMode) => boolean;
   /** Drops the previous run's readouts, for when the input itself changes. */
   resetRun: () => void;
-  reportSupport: (text: string, tone: SupportTone) => void;
 }
 
 const defaultWorkerFactory: WorkerFactory = () =>
@@ -165,7 +163,7 @@ export function useInference(options: UseInferenceOptions = {}): InferenceApi {
   const loadModel = useCallback(
     (modelId: ModelId, useLocal: boolean) => {
       if (!isModelId(modelId)) {
-        dispatch({ type: "support", text: "Choose one of the listed models.", tone: "error" });
+        dispatch({ type: "fail", message: "Choose one of the listed models." });
         return;
       }
       queueRef.current = null;
@@ -180,7 +178,7 @@ export function useInference(options: UseInferenceOptions = {}): InferenceApi {
   const startBatch = useCallback(
     (cases: Case[], readout: ReadoutMode): boolean => {
       if (cases.length === 0) {
-        dispatch({ type: "support", text: "Load at least one case.", tone: "error" });
+        dispatch({ type: "fail", message: "Load at least one case." });
         return false;
       }
       for (const item of cases) {
@@ -188,12 +186,12 @@ export function useInference(options: UseInferenceOptions = {}): InferenceApi {
         if (problem) {
           // A batch says which case is unusable; a single run keeps its message.
           const prefix = cases.length > 1 ? `${item.id}: ` : "";
-          dispatch({ type: "support", text: `${prefix}${problem}`, tone: "error" });
+          dispatch({ type: "fail", message: `${prefix}${problem}` });
           return false;
         }
       }
       queueRef.current = { cases, readout, index: 0, direct: null };
-      dispatch({ type: "start-batch", ids: cases.map((item) => item.id) });
+      dispatch({ type: "start-batch", ids: cases.map((item) => item.id), readout });
       ensureWorker().postMessage({ type: "compare", data: cases[0].input, readout });
       return true;
     },
@@ -210,10 +208,6 @@ export function useInference(options: UseInferenceOptions = {}): InferenceApi {
     (cases: Case[], readout: ReadoutMode): boolean => startBatch(cases, readout),
     [startBatch],
   );
-
-  const reportSupport = useCallback((text: string, tone: SupportTone) => {
-    dispatch({ type: "support", text, tone });
-  }, []);
 
   const resetRun = useCallback(() => {
     queueRef.current = null;
@@ -232,6 +226,5 @@ export function useInference(options: UseInferenceOptions = {}): InferenceApi {
     runComparison,
     runCases,
     resetRun,
-    reportSupport,
   };
 }

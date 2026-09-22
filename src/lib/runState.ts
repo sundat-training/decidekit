@@ -20,9 +20,8 @@ import type {
 } from "@/lib/inference/protocol";
 import type { ModelId } from "@/lib/models";
 import type { ReadoutMode } from "@/lib/readout";
+import type { Support } from "@/lib/support";
 import type { WebGPUStatus } from "@/lib/webgpu";
-
-export type SupportTone = "info" | "ok" | "error";
 
 /** The list a run is working through, and what it has produced so far. */
 export interface BatchState {
@@ -30,6 +29,8 @@ export interface BatchState {
   outcomes: CaseOutcome[];
   /** The case being computed, or null while the batch is idle. */
   runningId: string | null;
+  /** The paths every case of this batch computes. */
+  readout: ReadoutMode;
 }
 
 export interface RunState {
@@ -37,7 +38,8 @@ export interface RunState {
   webgpuOk: boolean;
   modelReady: boolean;
   busy: "load" | "run" | null;
-  support: { text: string; tone: SupportTone };
+  /** What the support line reports, as a fact rather than a sentence. */
+  support: Support;
   download: DownloadSnapshot;
   loadMs: number | null;
   warmupMs: number | null;
@@ -90,7 +92,7 @@ export const initialRunState: RunState = {
   webgpuOk: false,
   modelReady: false,
   busy: null,
-  support: { text: "Checking WebGPU…", tone: "info" },
+  support: { kind: "checking" },
   download: { percent: null, value: "—", detail: "starts only when you click load" },
   loadMs: null,
   warmupMs: null,
@@ -105,24 +107,14 @@ export const initialRunState: RunState = {
 
 export type RunAction =
   | { type: "webgpu-checked"; status: WebGPUStatus }
-  | { type: "support"; text: string; tone: SupportTone }
+  | { type: "fail"; message: string }
   | { type: "start-load"; modelId: ModelId }
-  | { type: "start-batch"; ids: string[] }
+  | { type: "start-batch"; ids: string[]; readout: ReadoutMode }
   | { type: "case-done"; outcome: CaseOutcome }
   | { type: "reset-run" }
   | { type: "download"; snapshot: DownloadSnapshot }
   | { type: "worker-failed"; message: string }
   | { type: "worker-event"; event: WorkerEvent };
-
-/** Says what finished, in the words the single-decision lab used before. */
-function doneMessage(outcomes: CaseOutcome[]): string {
-  if (outcomes.length > 1) {
-    return `${outcomes.length} cases complete. Edit the cases and run again whenever you like.`;
-  }
-  return outcomes[0].generation
-    ? "Comparison complete. Edit the decision and run again whenever you like."
-    : "Direct readout complete. Edit the decision and run again whenever you like.";
-}
 
 /**
  * Ends whatever was in flight with a message.
@@ -138,14 +130,14 @@ function fail(state: RunState, message: string): RunState {
     failedModelId: state.busy === "load" ? state.loadingModelId : state.failedModelId,
     loadingModelId: null,
     batch: state.batch ? { ...state.batch, runningId: null } : null,
-    support: { text: message, tone: "error" },
+    support: { kind: "failed", message },
   };
 }
 
 function applyWorkerEvent(state: RunState, event: WorkerEvent): RunState {
   switch (event.type) {
     case "loading":
-      return { ...state, support: { text: event.message, tone: "info" } };
+      return { ...state, support: { kind: "progress", message: event.message } };
 
     case "loaded":
       return { ...state, loadMs: event.loadMs, download: { ...state.download, percent: 100 } };
@@ -158,10 +150,7 @@ function applyWorkerEvent(state: RunState, event: WorkerEvent): RunState {
         loadingModelId: null,
         warmupMs: event.warmupMs,
         loadedModelId: event.modelId,
-        support: {
-          text: `Ready. ${event.modelName} is loaded locally on WebGPU.`,
-          tone: "ok",
-        },
+        support: { kind: "model-ready", modelName: event.modelName },
       };
 
     case "direct":
@@ -196,11 +185,11 @@ export function runStateReducer(state: RunState, action: RunAction): RunState {
         ...state,
         webgpuChecked: true,
         webgpuOk: action.status.ok,
-        support: { text: action.status.message, tone: action.status.ok ? "ok" : "error" },
+        support: { kind: "webgpu", ok: action.status.ok, message: action.status.message },
       };
 
-    case "support":
-      return { ...state, support: { text: action.text, tone: action.tone } };
+    case "fail":
+      return fail(state, action.message);
 
     case "start-load":
       return {
@@ -218,7 +207,7 @@ export function runStateReducer(state: RunState, action: RunAction): RunState {
         stream: null,
         result: null,
         batch: null,
-        support: { text: "Loading the model…", tone: "info" },
+        support: { kind: "loading-model" },
       };
 
     case "start-batch":
@@ -228,14 +217,13 @@ export function runStateReducer(state: RunState, action: RunAction): RunState {
         direct: null,
         stream: null,
         result: null,
-        batch: { ids: action.ids, outcomes: [], runningId: action.ids[0] ?? null },
-        support: {
-          text:
-            action.ids.length === 1
-              ? "Running the direct readout, then the token-by-token generation…"
-              : `Running ${action.ids.length} cases on the loaded model…`,
-          tone: "info",
+        batch: {
+          ids: action.ids,
+          outcomes: [],
+          runningId: action.ids[0] ?? null,
+          readout: action.readout,
         },
+        support: { kind: "running", cases: action.ids.length, readout: action.readout },
       };
 
     case "case-done": {
@@ -257,7 +245,9 @@ export function runStateReducer(state: RunState, action: RunAction): RunState {
         result: finished ? state.result : null,
         // The batch stays busy until its last case is done.
         busy: finished ? null : state.busy,
-        support: finished ? { text: doneMessage(outcomes), tone: "ok" } : state.support,
+        support: finished
+          ? { kind: "done", cases: outcomes.length, readout: current.readout }
+          : state.support,
       };
     }
 
