@@ -7,6 +7,7 @@ import {
   extractJsonPayload,
   GENERATION_MAX_TOKENS,
   grammarFor,
+  maxIndex,
   optionBlock,
   readOptionLogprobs,
   softmax,
@@ -291,5 +292,19 @@ describe("decision guard", () => {
     expect(
       validateDecisionInput({ ...INPUT, options: Array.from({ length: 21 }, (_, i) => `o${i}`) }),
     ).toBe("This lab requires 2 to 20 options.");
+  });
+});
+
+/**
+ * Both readout paths ask this who won, so its tie rule is the whole point: a
+ * later equal score must not displace the earlier option.
+ */
+describe("winner selection", () => {
+  it("returns the first index of the largest value", () => {
+    expect(maxIndex([0.1, 0.7, 0.2])).toBe(1);
+    expect(maxIndex([0.2, 0.2, 0.1])).toBe(0);
+    expect(maxIndex([0.1, 0.2, 0.2])).toBe(1);
+    expect(maxIndex([1])).toBe(0);
+    expect(maxIndex([])).toBe(-1);
   });
 });

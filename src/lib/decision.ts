@@ -127,6 +127,22 @@ export function softmax(values: number[]): number[] {
 }
 
 /**
+ * Index of the largest value, with ties going to the earlier entry, or `-1` for
+ * an empty list.
+ *
+ * Both readout paths pick their winner through this: the generation when it
+ * validates its probabilities, the direct path when the case table reads the
+ * top option out of the scores. One rule, so the two cannot disagree.
+ */
+export function maxIndex(values: readonly number[]): number {
+  let best = -1;
+  for (const [index, value] of values.entries()) {
+    if (best === -1 || value > values[best]) best = index;
+  }
+  return best;
+}
+
+/**
  * Pull the log-probability of each option letter out of the first generated
  * token. Models differ in whether they expose the letter as text or as a single
  * byte, so both encodings are accepted.
@@ -186,7 +202,7 @@ export function validateGeneration(text: string, input: DecisionInput): Generati
     });
     const total = probabilities.reduce((sum, value) => sum + value, 0);
     if (Math.abs(total - 1) > 0.02) throw new Error("probabilities must sum to 1");
-    const index = probabilities.indexOf(Math.max(...probabilities));
+    const index = maxIndex(probabilities);
     return {
       valid: true,
       choice: labels[index],

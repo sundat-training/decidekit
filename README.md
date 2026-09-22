@@ -80,6 +80,10 @@ text in the page; nothing in it is uploaded anywhere.
 A ready-to-load example ships with the site at `public/examples/cases.json`
 (served as `/examples/cases.json`), and a test fails if it ever stops parsing.
 
+Loading a file clears whatever ran before it, and returning to the editor clears
+what the cases produced, so a number on screen always belongs to the input next
+to it.
+
 ## Scripts
 
 | Command               | Purpose                                                       |

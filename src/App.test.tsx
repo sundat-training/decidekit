@@ -937,4 +937,42 @@ describe("case file", () => {
     await waitForCount(page.getByLabelText("State"), 1);
     await waitForCount(page.getByTestId("preset-email"), 1);
   });
+
+  it("drops the batch readouts when the editor takes over again", async () => {
+    const worker = await setup();
+    await loadDefaultModel(worker);
+
+    await page.getByTestId("case-file").upload(caseFile("one.json", [CASES[0]]));
+    await waitForText(page.getByTestId("case-count"), "1 case");
+    await page.getByTestId("run").click();
+    await emit(worker, directResult("A", "Account access support", 0.7));
+    await emit(worker, { type: "complete", generation: null });
+    await waitForText(page.getByTestId("cases-progress"), "1 / 1");
+
+    await page.getByTestId("clear-cases").click();
+    await waitForCount(page.getByTestId("preset-email"), 1);
+
+    // The case is gone, so its numbers must not reappear as the editor's.
+    await waitForCount(page.getByTestId("direct-output"), 0);
+    await waitForCount(page.getByTestId("ratio"), 0);
+    await waitForText(page.getByText("waiting for a run"), "waiting for a run");
+  });
+
+  it("drops the editor readouts when a file is loaded", async () => {
+    const worker = await setup();
+    await loadDefaultModel(worker);
+
+    await page.getByTestId("run").click();
+    await emit(worker, directResult("A", "Account access support", 0.7));
+    await emit(worker, { type: "complete", generation: null });
+    await waitForTextMatching(page.getByTestId("direct-output"), /Account access support/);
+
+    await page.getByTestId("case-file").upload(caseFile("one.json", [CASES[0]]));
+    await waitForText(page.getByTestId("case-count"), "1 case");
+
+    // The case list starts empty rather than inheriting the editor's run.
+    await waitForText(page.getByTestId("cases-progress"), "0 / 1");
+    await waitForText(page.getByTestId("case-choices-first"), "—");
+    await waitForCount(page.getByTestId("direct-output"), 0);
+  });
 });

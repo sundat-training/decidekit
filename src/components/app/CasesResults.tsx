@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 import { SectionHeading } from "@/components/app/SectionHeading";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,7 +12,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Case, CaseOutcome } from "@/lib/cases";
-import { formatSeconds } from "@/lib/format";
+import { maxIndex } from "@/lib/decision";
+import { formatRatio, formatSeconds } from "@/lib/format";
 import { includesChoices, includesJson, type ReadoutMode } from "@/lib/readout";
 
 export interface CasesResultsProps {
@@ -25,10 +28,9 @@ export interface CasesResultsProps {
 function choiceCell(outcome: CaseOutcome | undefined, running: boolean): string {
   if (!outcome) return running ? "running…" : "—";
   const scores = outcome.direct?.options ?? [];
-  if (scores.length === 0) return "—";
-  const top = scores.reduce((best, option) =>
-    option.probability > best.probability ? option : best,
-  );
+  const index = maxIndex(scores.map((option) => option.probability));
+  if (index === -1) return "—";
+  const top = scores[index];
   return `${top.label} · ${top.probability.toFixed(3)}`;
 }
 
@@ -41,8 +43,9 @@ function jsonCell(outcome: CaseOutcome | undefined, running: boolean): string {
 }
 
 function ratioCell(outcome: CaseOutcome | undefined): string {
-  if (!outcome?.direct || !outcome.generation) return "—";
-  return `${(outcome.generation.generationMs / outcome.direct.totalMs).toFixed(2)}×`;
+  return (
+    formatRatio(outcome?.direct?.totalMs ?? null, outcome?.generation?.generationMs ?? null) ?? "—"
+  );
 }
 
 function jsonDetail(outcome: CaseOutcome | undefined): string | undefined {
@@ -51,10 +54,21 @@ function jsonDetail(outcome: CaseOutcome | undefined): string | undefined {
   return `unusable output · ${generation.validationError}`;
 }
 
-export function CasesResults({ cases, outcomes, runningId, readout }: CasesResultsProps) {
+/**
+ * Memoized: the run state changes on every streamed token, but a table row only
+ * changes when a case finishes. The props are replaced rather than mutated, so
+ * a shallow comparison is enough to keep the rows out of that loop.
+ */
+export const CasesResults = memo(function CasesResults({
+  cases,
+  outcomes,
+  runningId,
+  readout,
+}: CasesResultsProps) {
   const showChoices = includesChoices(readout);
   const showJson = includesJson(readout);
   const showRatio = showChoices && showJson;
+  const byId = new Map(outcomes.map((outcome) => [outcome.id, outcome]));
 
   return (
     <Card className="gap-0 py-6">
@@ -85,7 +99,7 @@ export function CasesResults({ cases, outcomes, runningId, readout }: CasesResul
           </TableHeader>
           <TableBody>
             {cases.map((entry) => {
-              const outcome = outcomes.find((item) => item.id === entry.id);
+              const outcome = byId.get(entry.id);
               const running = entry.id === runningId;
               return (
                 <TableRow key={entry.id} data-testid="case-result-row">
@@ -118,4 +132,4 @@ export function CasesResults({ cases, outcomes, runningId, readout }: CasesResul
       </CardContent>
     </Card>
   );
-}
+});

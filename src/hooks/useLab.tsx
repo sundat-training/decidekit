@@ -78,23 +78,30 @@ export function LabProvider({ children }: { children: ReactNode }) {
    * A rejected file leaves the cases that are already loaded in place, so a
    * typo in a new file never silently empties a run the visitor prepared.
    */
-  const loadCaseFile = useCallback(async (file: File) => {
-    const text = await file.text();
-    const parsed = parseCaseFile(text);
-    setCaseFileName(file.name);
-    if (!parsed.ok) {
-      setCaseFileError(parsed.error);
-      return;
-    }
-    setCaseFileError(null);
-    setCases(parsed.cases);
-  }, []);
+  const loadCaseFile = useCallback(
+    async (file: File) => {
+      const text = await file.text();
+      const parsed = parseCaseFile(text);
+      setCaseFileName(file.name);
+      if (!parsed.ok) {
+        setCaseFileError(parsed.error);
+        return;
+      }
+      setCaseFileError(null);
+      // The old readouts belong to the old input, whether it was the editor or
+      // another file.
+      inference.resetRun();
+      setCases(parsed.cases);
+    },
+    [inference],
+  );
 
   const clearCases = useCallback(() => {
+    inference.resetRun();
     setCases([]);
     setCaseFileName(null);
     setCaseFileError(null);
-  }, []);
+  }, [inference]);
 
   const run = useCallback(() => {
     if (cases.length > 0) {

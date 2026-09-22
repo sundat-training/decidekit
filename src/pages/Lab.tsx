@@ -4,7 +4,11 @@ import { SetupPanel } from "@/components/app/SetupPanel";
 import { VerdictBar } from "@/components/app/VerdictBar";
 import { Workbench } from "@/components/app/Workbench";
 import { useLab } from "@/hooks/useLab";
+import type { CaseOutcome } from "@/lib/cases";
 import { verdictRatio } from "@/lib/verdict";
+
+/** One stable reference, so a fresh `[]` cannot defeat the table's memo. */
+const NO_OUTCOMES: CaseOutcome[] = [];
 
 export function Lab() {
   const lab = useLab();
@@ -69,7 +73,7 @@ export function Lab() {
       {fromFile ? (
         <CasesResults
           cases={lab.cases}
-          outcomes={inference.batch?.outcomes ?? []}
+          outcomes={inference.batch?.outcomes ?? NO_OUTCOMES}
           runningId={inference.batch?.runningId ?? null}
           readout={lab.readout}
         />

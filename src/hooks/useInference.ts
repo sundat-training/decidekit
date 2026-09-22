@@ -77,6 +77,7 @@ type Action =
   | { type: "start-load" }
   | { type: "start-batch"; ids: string[] }
   | { type: "case-done"; outcome: CaseOutcome }
+  | { type: "reset-run" }
   | { type: "download"; snapshot: DownloadSnapshot }
   | { type: "worker-event"; event: WorkerEvent };
 
@@ -149,11 +150,20 @@ function reducer(state: InferenceState, action: Action): InferenceState {
           outcomes,
           runningId: finished ? null : current.ids[outcomes.length],
         },
+        // While the batch advances, the single-run readouts would describe the
+        // case that just ended, so they are dropped: each case starts empty.
+        direct: finished ? state.direct : null,
+        stream: finished ? state.stream : null,
+        result: finished ? state.result : null,
         // The batch stays busy until its last case is done.
         busy: finished ? null : state.busy,
         support: finished ? { text: doneMessage(outcomes), tone: "ok" } : state.support,
       };
     }
+
+    case "reset-run":
+      // The readouts described the previous input; a new input has none.
+      return { ...state, direct: null, stream: null, result: null, batch: null };
 
     case "download":
       return { ...state, download: action.snapshot };
@@ -234,6 +244,8 @@ export interface InferenceApi extends InferenceState {
   runComparison: (input: DecisionInput, readout: ReadoutMode) => boolean;
   /** Runs every case in order on the loaded model. */
   runCases: (cases: Case[], readout: ReadoutMode) => boolean;
+  /** Drops the previous run's readouts, for when the input itself changes. */
+  resetRun: () => void;
   reportSupport: (text: string, tone: SupportTone) => void;
 }
 
@@ -411,6 +423,11 @@ export function useInference(options: UseInferenceOptions = {}): InferenceApi {
     dispatch({ type: "support", text, tone });
   }, []);
 
+  const resetRun = useCallback(() => {
+    queueRef.current = null;
+    dispatch({ type: "reset-run" });
+  }, []);
+
   const canLoad = state.webgpuOk && state.busy === null;
   const canRun = state.modelReady && state.busy === null;
 
@@ -422,6 +439,7 @@ export function useInference(options: UseInferenceOptions = {}): InferenceApi {
     loadModel,
     runComparison,
     runCases,
+    resetRun,
     reportSupport,
   };
 }

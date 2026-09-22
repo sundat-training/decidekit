@@ -135,10 +135,15 @@ export async function runGeneration(
   }
 
   for await (const chunk of stream) {
-    const text = chunk.choices?.[0]?.delta?.content ?? "";
-    if (text && firstTokenAt === null) firstTokenAt = now();
-    generatedText += text;
     if (chunk.usage) usage = chunk.usage;
+    const text = chunk.choices?.[0]?.delta?.content ?? "";
+    if (text) {
+      if (firstTokenAt === null) firstTokenAt = now();
+      generatedText += text;
+    }
+    // Frames that carry neither content nor usage have nothing to report, and
+    // a batch of cases would otherwise push real re-renders for them.
+    if (!text && !chunk.usage) continue;
     onUpdate({
       text: generatedText,
       tokens: usage?.completion_tokens ?? 0,
