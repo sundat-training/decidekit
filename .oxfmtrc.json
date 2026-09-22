@@ -8,5 +8,11 @@
   "trailingComma": "all",
   "arrowParens": "always",
   "endOfLine": "lf",
-  "ignorePatterns": ["public/vendor/**", "dist/**", "pnpm-lock.yaml", "pnpm-workspace.yaml"]
+  "ignorePatterns": [
+    "public/vendor/**",
+    "public/coi-serviceworker.js",
+    "dist/**",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml"
+  ]
 }

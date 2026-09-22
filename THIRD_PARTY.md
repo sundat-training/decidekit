@@ -15,6 +15,12 @@ them from Hugging Face at runtime, pinned to a fixed revision.
 | ------ | -------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | wllama | https://github.com/ngxson/wllama | `3.6.1`         | Browser inference runtime and its WASM build, vendored under `public/vendor/wllama/`. MIT, © 2024 Xuan Son NGUYEN; the licence text ships next to the build. |
 
+## Vendored browser shim
+
+| Item              | Upstream                                      | Pinned version | Note                                                                                                                                                                               |
+| ----------------- | --------------------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| coi-serviceworker | https://github.com/gzuidhof/coi-serviceworker | `0.1.7`        | Adds the COOP/COEP headers through a service worker on hosts without header control (GitHub Pages). Vendored verbatim as `public/coi-serviceworker.js`. MIT, © 2025 Guido Zuidhof. |
+
 ## Build and UI dependencies
 
 | Item                                     | Upstream                                                                                                      | Note                                                         |

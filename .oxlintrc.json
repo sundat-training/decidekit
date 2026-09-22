@@ -10,7 +10,13 @@
     "browser": true,
     "builtin": true
   },
-  "ignorePatterns": ["dist/**", "public/vendor/**", "coverage/**", ".vitest/**"],
+  "ignorePatterns": [
+    "dist/**",
+    "public/vendor/**",
+    "public/coi-serviceworker.js",
+    "coverage/**",
+    ".vitest/**"
+  ],
   "rules": {
     "react/react-in-jsx-scope": "off",
     "import/no-unassigned-import": ["error", { "allow": ["**/*.css"] }],
