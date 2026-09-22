@@ -6,8 +6,8 @@
  * feeds one worker event back, and `emitWorkerError` fails the worker itself as
  * opposed to sending an error message from inside it.
  *
- * This is test infrastructure, not shipped code; `contracts.test.ts` skips this
- * directory for that reason.
+ * This is test infrastructure, not shipped code, which is why it sits outside
+ * `src/` and next to no shipped module.
  */
 
 import type { WorkerLike } from "@/hooks/useInference";

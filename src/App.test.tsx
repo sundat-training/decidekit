@@ -5,7 +5,7 @@ import { render } from "vitest-browser-react";
 import { App } from "@/App";
 import type { WebGPUProbe } from "@/hooks/useInference";
 import type { WorkerEvent } from "@/lib/inference/protocol";
-import { FakeWorker } from "@/test/fakeWorker";
+import { FakeWorker } from "../test/fakeWorker";
 import { DEFAULT_DECISION } from "@/lib/presets";
 import { createAppRouter } from "@/router";
 

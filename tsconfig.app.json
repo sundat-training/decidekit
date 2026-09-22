@@ -21,6 +21,7 @@
     "types": ["vite/client"],
     "paths": { "@/*": ["./src/*"] }
   },
-  "include": ["src"],
+  // The worker double lives outside `src`, so it needs naming to stay checked.
+  "include": ["src", "test"],
   "exclude": ["src/worker"]
 }

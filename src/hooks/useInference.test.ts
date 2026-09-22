@@ -4,7 +4,7 @@ import { renderHook } from "vitest-browser-react";
 import { useInference } from "@/hooks/useInference";
 import type { Case } from "@/lib/cases";
 import type { WorkerEvent } from "@/lib/inference/protocol";
-import { FakeWorker } from "@/test/fakeWorker";
+import { FakeWorker } from "../../test/fakeWorker";
 
 const READY = async () => ({ ok: true, message: "WebGPU is ready." });
 
