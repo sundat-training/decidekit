@@ -286,7 +286,7 @@ export function SetupPanel({
               label="readouts"
               id="readout-title"
               title="What should run"
-              description="Both readouts answer the same decision, each asking for that answer in its own form. Selecting one skips the work of the other; the model, the question and the options stay identical."
+              description="Both readouts see the same state, question and options; only the final format instruction differs. Selecting one skips the work of the other."
             />
 
             <Segmented

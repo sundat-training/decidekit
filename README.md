@@ -12,10 +12,11 @@ model:
    the result is validated: exact keys, values inside `[0, 1]`, sum within `0.02`
    of one.
 
-Both readouts see the same state, question and options, but each asks for the
-answer in its own form — a forced single option letter versus a written
-distribution. The two can therefore name different options, and that difference
-is what the lab exists to show.
+The two prompts contain identical state, question and option text. Their final
+format instructions differ: the direct readout asks for one option letter, the
+generation asks the model to report a distribution as JSON. Those generated,
+self-reported probabilities are a separate readout and need not match the direct
+token probabilities.
 
 This is a live experiment, not a benchmark. The page shows only timings measured
 in the current tab. Model load and shader warmup are reported separately from

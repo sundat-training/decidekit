@@ -12,8 +12,8 @@ import { DEFAULT_MODEL_ID, MODELS } from "@/lib/models";
 
 const STEPS: Array<{ title: string; body: string }> = [
   {
-    title: "One decision, two requests",
-    body: "State, question and options are rendered into one user message, and the system prompt is identical for both paths. The user instruction is not: readout A asks for a single option letter, readout B asks the model to write the whole distribution out. Each readout poses its own version of the question, so the two can name different options.",
+    title: "Same input, different format instruction",
+    body: "Both prompts contain identical state, question and option text. Their final format instructions differ: the direct readout asks for one option letter, the generation asks the model to report a distribution by writing every option and probability as JSON. Those generated, self-reported probabilities are a separate readout and need not match the direct token probabilities.",
   },
   {
     title: "Readout A: read the distribution",
@@ -47,9 +47,9 @@ export function About() {
         </p>
         <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">
           Normally a decision has to be read out of generated text and parsed back into a value. The
-          direct path skips that round trip. The generation path keeps it. The model, the state, the
-          question and the options are held constant, so what separates the two answers is how the
-          model was asked for them and how they were read.
+          direct path skips that round trip. The generation path keeps it. Both prompts carry the
+          same state, question and options, and only the final format instruction differs — so the
+          two readouts answer in their own form and need not agree.
         </p>
         <div className="mt-6 flex flex-wrap gap-2">
           <Button asChild size="sm">
@@ -85,8 +85,9 @@ export function About() {
             <p className="max-w-prose">
               The generation readout is the control: the same model, the same state and the same
               options, asked to write its distribution out instead of having it read — which is what
-              most applications actually do. It is a different request, so it can name a different
-              option. Running both makes that difference visible instead of assumed.
+              most applications actually do. Its format instruction differs, and its self-reported
+              probabilities need not match the direct token probabilities. Running both makes that
+              difference visible instead of assumed.
             </p>
           </CardContent>
         </Card>
@@ -98,7 +99,7 @@ export function About() {
           label="method"
           id="how-title"
           title="How a run works"
-          description="One loaded model, one decision, two ways of asking for and reading the answer. The order is fixed and the paths never overlap."
+          description="One loaded model, two readout paths. The order is fixed and the paths never overlap."
         />
         <MethodMap modelShort={MODELS[DEFAULT_MODEL_ID].short} optionCount={3} />
         <div className="grid gap-4 sm:grid-cols-2">
