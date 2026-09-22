@@ -85,9 +85,6 @@ export function DirectLane({ direct, running }: DirectLaneProps) {
         <Badge variant="direct">no decoding</Badge>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-4">
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          Read the model's choice logits and normalize only across the options you supplied.
-        </p>
         {direct ? (
           <div className="flex flex-1 flex-col gap-3" data-testid="direct-output">
             {direct.options.map((option) => (
@@ -143,10 +140,6 @@ export function GenerationLane({ stream, result, running }: GenerationLaneProps)
         <Badge variant="generation">token by token</Badge>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-4">
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          Ask the model to estimate the same displayed-option distribution and write it as JSON.
-        </p>
-
         {text ? (
           <pre
             className="flex-1 overflow-x-auto rounded-lg bg-muted/50 p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap"

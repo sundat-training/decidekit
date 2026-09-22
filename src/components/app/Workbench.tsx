@@ -45,11 +45,6 @@ export function Workbench({
         label="decision"
         id="workbench-title"
         title="Give it a real choice"
-        description={
-          readout === "both"
-            ? "Both paths receive the exact same state, question and options."
-            : "The selected readout receives this state, question and options."
-        }
         actions={
           <Button onClick={onRun} disabled={!canRun} data-testid="run">
             {running ? (
@@ -102,12 +97,6 @@ export function Workbench({
 
           <OptionEditor options={options} onChange={onOptionsChange} />
         </div>
-
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          One path reads the option probabilities directly; the other asks the model to write its
-          option probabilities as JSON. Only the readout differs — the prompt, the model and the
-          options are identical.
-        </p>
       </CardContent>
     </Card>
   );

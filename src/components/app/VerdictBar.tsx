@@ -3,10 +3,9 @@ export interface VerdictBarProps {
   label: string;
   /** Rendered value, e.g. `4.21× generation / direct`. */
   ratio: string;
-  note: string;
 }
 
-export function VerdictBar({ label, ratio, note }: VerdictBarProps) {
+export function VerdictBar({ label, ratio }: VerdictBarProps) {
   return (
     <section
       aria-live="polite"
@@ -19,7 +18,6 @@ export function VerdictBar({ label, ratio, note }: VerdictBarProps) {
       >
         {ratio}
       </strong>
-      <p className="basis-full text-xs leading-relaxed opacity-70">{note}</p>
     </section>
   );
 }

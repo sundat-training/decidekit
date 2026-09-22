@@ -14,7 +14,6 @@ export function Lab() {
     readout: lab.readout,
     directMs: inference.direct?.totalMs ?? null,
     generationMs: result?.generationMs ?? null,
-    generatedTokens: result?.generatedTokens ?? null,
   });
 
   return (
@@ -63,7 +62,7 @@ export function Lab() {
         readout={lab.readout}
       />
 
-      <VerdictBar label={verdict.label} ratio={verdict.ratio} note={verdict.note} />
+      <VerdictBar label={verdict.label} ratio={verdict.ratio} />
     </>
   );
 }
