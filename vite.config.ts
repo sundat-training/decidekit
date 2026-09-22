@@ -17,6 +17,9 @@ const isolationHeaders = {
 };
 
 export default defineConfig({
+  // A GitHub Pages project site is served from `/<repo>/`; set `BASE_PATH` for
+  // that build. Header-capable hosts and local dev keep the root base.
+  base: process.env.BASE_PATH ?? "/",
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },

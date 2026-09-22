@@ -174,15 +174,28 @@ Any static HTTPS host: run `pnpm run build` and upload `dist/`. No server,
 database, API, telemetry or server-side inference is involved, and there is no
 build step at runtime.
 
-Keep `_headers` on hosts that read it (Cloudflare Pages, Netlify, and similar).
-It keeps the page cross-origin isolated, which is what allows the WASM runtime to
-use more than one thread, and it prevents the hosting URL from being sent as a
-referrer to Hugging Face.
+Cross-origin isolation is what allows the WASM runtime to use more than one
+thread, and it is delivered one of two ways:
+
+- **Hosts that read `_headers`** (Cloudflare Pages, Netlify, and similar) send
+  `COOP`/`COEP` as real response headers. `_headers` also carries
+  `Referrer-Policy: no-referrer`, so the hosting URL is not sent to Hugging Face.
+- **Hosts without header control** (GitHub Pages) get the two headers from the
+  vendored `coi-serviceworker.js`, which rewrites every response from a service
+  worker. The document keeps the referrer policy through the `<meta name="referrer">`
+  tag in `index.html`. The service worker only takes effect from the second load
+  on — the first visit registers it and reloads once — and it needs a secure
+  context, so HTTPS (or `localhost`).
 
 Routing is client-side, so the host has to serve `index.html` for unknown paths
 or a direct visit to `/about` will 404. `_redirects` covers Cloudflare Pages and
-Netlify. On other hosts add the equivalent rewrite, or reach the pages through
-the in-app navigation.
+Netlify. GitHub Pages ignores it, so the deploy workflow copies `index.html` to
+`dist/404.html` as the fallback.
+
+A GitHub Pages **project site** is served from `/<repo>/`, so that build needs
+the prefix in two places: pass `BASE_PATH=/decidekit/` to `pnpm run build` (the
+bundler's base) and the router reads the same prefix through `import.meta.env.BASE_URL`.
+Root-served hosts and local development keep `BASE_PATH` unset.
 
 ## Testing
 
