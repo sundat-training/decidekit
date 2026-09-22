@@ -86,8 +86,7 @@ export function DirectLane({ direct, running }: DirectLaneProps) {
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-4">
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Read the model's choice logits and normalize only across the options you supplied. The
-          result is conditional on those options and is not calibrated confidence.
+          Read the model's choice logits and normalize only across the options you supplied.
         </p>
         {direct ? (
           <div className="flex flex-1 flex-col gap-3" data-testid="direct-output">
