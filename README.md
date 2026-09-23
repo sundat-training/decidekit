@@ -1,5 +1,7 @@
 # DecideKit
 
+Live: <https://sundat-training.github.io/decidekit/>
+
 A browser-only lab that compares two ways of reading a decision out of one local
 model:
 
