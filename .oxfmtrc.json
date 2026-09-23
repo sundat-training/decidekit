@@ -13,6 +13,7 @@
     "public/coi-serviceworker.js",
     "dist/**",
     "pnpm-lock.yaml",
-    "pnpm-workspace.yaml"
+    "pnpm-workspace.yaml",
+    "CHANGELOG.md"
   ]
 }
