@@ -14,6 +14,9 @@ import { PRESETS, type DecisionPreset } from "@/lib/presets";
 import { READOUT_RUN_LABEL, type ReadoutMode } from "@/lib/readout";
 import { cn } from "@/lib/utils";
 
+/** The shipped two-case example, resolved against the bundler's base. */
+const EXAMPLE_CASES_URL = `${import.meta.env.BASE_URL}examples/cases-two.json`;
+
 export interface WorkbenchProps {
   state: string;
   question: string;
@@ -188,6 +191,14 @@ export function Workbench({
               '{ "cases": [ { "id": "…", "type": "decision", "input": { "state", "question", "options" } } ] }'
             }
           </p>
+          <a
+            href={EXAMPLE_CASES_URL}
+            download
+            data-testid="example-cases-download"
+            className="w-fit font-mono text-[10px] text-muted-foreground underline underline-offset-2 hover:text-foreground"
+          >
+            download a two-case example
+          </a>
           {caseFileError ? (
             <p data-testid="case-file-error" className="font-mono text-xs text-destructive">
               {caseFileError}

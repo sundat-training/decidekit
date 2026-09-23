@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import exampleFile from "../../public/examples/cases.json?raw";
+import twoCaseFile from "../../public/examples/cases-two.json?raw";
 import { hasCases, parseCaseFile } from "@/lib/cases";
 
 const INPUT = {
@@ -148,6 +149,19 @@ describe("case file", () => {
     ]);
     // The example covers both ends of the option bounds and both forms of `type`.
     expect(parsed.cases.map((item) => item.input.options.length)).toEqual([3, 3, 4, 2]);
+    expect(parsed.cases.every((item) => item.type === "decision")).toBe(true);
+  });
+
+  /**
+   * The two-case file is offered as a download next to the file picker, so it
+   * has to keep parsing for the same reason the four-case one does.
+   */
+  it("parses the two-case example it offers for download", () => {
+    const parsed = parseCaseFile(twoCaseFile);
+
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.cases.map((item) => item.id)).toEqual(["account-support", "email-triage"]);
     expect(parsed.cases.every((item) => item.type === "decision")).toBe(true);
   });
 });

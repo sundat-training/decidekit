@@ -86,7 +86,9 @@ dim line, plus the wall time of that case and a total over all cases. The file i
 read as text in the page; nothing in it is uploaded anywhere.
 
 A ready-to-load example ships with the site at `public/examples/cases.json`
-(served as `/examples/cases.json`), and a test fails if it ever stops parsing.
+(served as `/examples/cases.json`), and a test fails if it ever stops parsing. A
+shorter two-case file, `public/examples/cases-two.json`, is offered as a
+download next to the file picker.
 
 Loading a file clears whatever ran before it, and returning to the editor clears
 what the cases produced, so a number on screen always belongs to the input next

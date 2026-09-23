@@ -902,6 +902,17 @@ function directResult(label: string, description: string, probability: number) {
 }
 
 describe("case file", () => {
+  it("offers the two-case example for download", async () => {
+    await setup();
+
+    const link = page.getByTestId("example-cases-download");
+    await waitForCount(link, 1);
+
+    const element = await link.findElement();
+    expect(element.getAttribute("href")).toMatch(/\/examples\/cases-two\.json$/);
+    expect(element.hasAttribute("download")).toBe(true);
+  });
+
   it("replaces the editor with the loaded cases", async () => {
     await setup();
 
