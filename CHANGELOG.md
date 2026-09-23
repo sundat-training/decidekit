@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/sundat-training/decidekit/compare/decidekit-v0.2.0...decidekit-v0.3.0) (2026-09-23)
+
+
+### Features
+
+* **cases:** offer a two-case example for download ([7f3b6f8](https://github.com/sundat-training/decidekit/commit/7f3b6f8a985f1e9007e504298dd0734b4e6d2f91))
+
 ## [0.2.0](https://github.com/sundat-training/decidekit/compare/decidekit-v0.1.0...decidekit-v0.2.0) (2026-09-23)
 
 
