@@ -83,6 +83,20 @@ describe("case scores", () => {
     expect(choiceScores(undefined)).toEqual([]);
   });
 
+  it("shows the direct readout of a case that is still running", () => {
+    // The case has no outcome yet, but its direct pass already returned.
+    expect(choiceScores(undefined, DIRECT)).toEqual(DIRECT.options);
+  });
+
+  it("prefers the case's own readout over one still in flight", () => {
+    const other: DirectResult = {
+      ...DIRECT,
+      options: [{ label: "A", description: "One", probability: 1, logit: 0 }],
+    };
+
+    expect(choiceScores(outcome({ direct: DIRECT }), other)).toEqual(DIRECT.options);
+  });
+
   it("rebuilds the generation distribution from its probabilities and the options", () => {
     expect(generationScores(CASE, outcome({ generation: GENERATION }))).toEqual([
       { label: "A", description: "One", probability: 0.2 },

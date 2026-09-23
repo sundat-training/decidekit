@@ -11,6 +11,7 @@
 import type { Case, CaseOutcome } from "@/lib/cases";
 import { maxIndex, scoreOptions, type ScoredOption } from "@/lib/decision";
 import { formatSeconds } from "@/lib/format";
+import type { DirectResult } from "@/lib/inference/protocol";
 
 /** A scored distribution split at its winner. */
 export interface Distribution {
@@ -34,9 +35,19 @@ export function splitDistribution(scores: readonly ScoredOption[]): Distribution
   };
 }
 
-/** The direct path scores every option itself, so its scores come as they are. */
-export function choiceScores(outcome: CaseOutcome | undefined): ScoredOption[] {
-  return outcome?.direct?.options ?? [];
+/**
+ * The direct scores a case shows.
+ *
+ * The direct path scores every option itself, so its scores come as they are.
+ * A case that has not finished yet has no outcome, but its direct pass may
+ * already have returned; that readout is shown as soon as it exists instead of
+ * waiting for the generation the same run also asks for.
+ */
+export function choiceScores(
+  outcome: CaseOutcome | undefined,
+  inFlight: DirectResult | null = null,
+): ScoredOption[] {
+  return outcome?.direct?.options ?? inFlight?.options ?? [];
 }
 
 /**

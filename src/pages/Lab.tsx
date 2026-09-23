@@ -76,6 +76,7 @@ export function Lab() {
           outcomes={inference.batch?.outcomes ?? NO_OUTCOMES}
           runningId={inference.batch?.runningId ?? null}
           readout={lab.readout}
+          liveDirect={inference.direct}
         />
       ) : (
         <ResultsSection

@@ -976,6 +976,13 @@ describe("case file", () => {
 
     await page.getByTestId("run").click();
     await emit(worker, directResult("A", "Account access support", 0.7));
+    // Each readout is shown as soon as its own path is done: the direct pass
+    // has returned, so its cell is filled while the generation still runs.
+    await waitForTextMatching(
+      page.getByTestId("case-choices-first"),
+      /A.*Account access support.*0\.700/,
+    );
+    await waitForText(page.getByTestId("case-json-first"), "running…");
     await emit(worker, {
       type: "complete",
       generation: {

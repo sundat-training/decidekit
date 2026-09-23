@@ -14,6 +14,7 @@ import {
 import type { Case, CaseOutcome } from "@/lib/cases";
 import type { ScoredOption } from "@/lib/decision";
 import { formatRatio, formatSecondsOrDash, NOT_MEASURED } from "@/lib/format";
+import type { DirectResult } from "@/lib/inference/protocol";
 import { includesChoices, includesJson, isComparison, type ReadoutMode } from "@/lib/readout";
 import {
   batchDurationMs,
@@ -31,6 +32,8 @@ export interface CasesResultsProps {
   /** The case in flight, or null while nothing runs. */
   runningId: string | null;
   readout: ReadoutMode;
+  /** The direct result of the case in flight, or null before it returns. */
+  liveDirect: DirectResult | null;
 }
 
 /**
@@ -108,14 +111,16 @@ function unusable(outcome: CaseOutcome | undefined, running: boolean) {
 
 /**
  * Memoized: the run state changes on every streamed token, but a table row only
- * changes when a case finishes. The props are replaced rather than mutated, so
- * a shallow comparison is enough to keep the rows out of that loop.
+ * changes when a case starts or finishes, or when its direct readout lands. The
+ * props are replaced rather than mutated, so a shallow comparison is enough to
+ * keep the rows out of that loop.
  */
 export const CasesResults = memo(function CasesResults({
   cases,
   outcomes,
   runningId,
   readout,
+  liveDirect,
 }: CasesResultsProps) {
   const showChoices = includesChoices(readout);
   const showJson = includesJson(readout);
@@ -163,6 +168,9 @@ export const CasesResults = memo(function CasesResults({
               const outcome = byId.get(entry.id);
               const running = entry.id === runningId;
               const ms = caseDurationMs(outcome);
+              // The direct pass of the running case may already have returned,
+              // so its readout is shown before the case itself is done.
+              const inFlight = running ? liveDirect : null;
               return (
                 <TableRow key={entry.id} data-testid="case-result-row">
                   <TableCell
@@ -178,7 +186,7 @@ export const CasesResults = memo(function CasesResults({
                       data-testid={`case-choices-${entry.id}`}
                     >
                       <Distribution
-                        scores={choiceScores(outcome)}
+                        scores={choiceScores(outcome, inFlight)}
                         tone="direct"
                         fallback={<Pending running={running} />}
                       />
