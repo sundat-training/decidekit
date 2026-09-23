@@ -1,6 +1,6 @@
 {
   "name": "decidekit",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Browser-only comparison of direct option logits against autoregressive JSON generation.",
   "type": "module",
